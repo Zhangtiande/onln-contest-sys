@@ -59,6 +59,13 @@
             <artifactId>ruoyi-system</artifactId>
         </dependency>
 
+        <!--WebSocket-->
+        <!--suppress VulnerableLibrariesLocal -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
     </dependencies>
 
 </project>
