@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.race.mapper.RaceQuestionBankMapper">
+    
+    <resultMap type="RaceQuestionBank" id="RaceQuestionBankResult">
+        <result property="questionId"    column="question_id"    />
+        <result property="question"    column="question"    />
+        <result property="a"    column="A"    />
+        <result property="b"    column="B"    />
+        <result property="c"    column="C"    />
+        <result property="d"    column="D"    />
+        <result property="answer"    column="answer"    />
+    </resultMap>
+
+    <sql id="selectRaceQuestionBankVo">
+        select question_id, question, A, B, C, D, answer from race_question_bank
+    </sql>
+
+    <select id="selectRaceQuestionBankList" parameterType="RaceQuestionBank" resultMap="RaceQuestionBankResult">
+        <include refid="selectRaceQuestionBankVo"/>
+        <where>  
+            <if test="question != null  and question != ''"> and question = #{question}</if>
+            <if test="a != null  and a != ''"> and A = #{a}</if>
+            <if test="b != null  and b != ''"> and B = #{b}</if>
+            <if test="c != null  and c != ''"> and C = #{c}</if>
+            <if test="d != null  and d != ''"> and D = #{d}</if>
+            <if test="answer != null  and answer != ''"> and answer = #{answer}</if>
+        </where>
+    </select>
+    
+    <select id="selectRaceQuestionBankByQuestionId" parameterType="Long" resultMap="RaceQuestionBankResult">
+        <include refid="selectRaceQuestionBankVo"/>
+        where question_id = #{questionId}
+    </select>
+        
+    <insert id="insertRaceQuestionBank" parameterType="RaceQuestionBank" useGeneratedKeys="true" keyProperty="questionId">
+        insert into race_question_bank
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="question != null and question != ''">question,</if>
+            <if test="a != null and a != ''">A,</if>
+            <if test="b != null and b != ''">B,</if>
+            <if test="c != null and c != ''">C,</if>
+            <if test="d != null and d != ''">D,</if>
+            <if test="answer != null and answer != ''">answer,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="question != null and question != ''">#{question},</if>
+            <if test="a != null and a != ''">#{a},</if>
+            <if test="b != null and b != ''">#{b},</if>
+            <if test="c != null and c != ''">#{c},</if>
+            <if test="d != null and d != ''">#{d},</if>
+            <if test="answer != null and answer != ''">#{answer},</if>
+         </trim>
+    </insert>
+
+    <update id="updateRaceQuestionBank" parameterType="RaceQuestionBank">
+        update race_question_bank
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="question != null and question != ''">question = #{question},</if>
+            <if test="a != null and a != ''">A = #{a},</if>
+            <if test="b != null and b != ''">B = #{b},</if>
+            <if test="c != null and c != ''">C = #{c},</if>
+            <if test="d != null and d != ''">D = #{d},</if>
+            <if test="answer != null and answer != ''">answer = #{answer},</if>
+        </trim>
+        where question_id = #{questionId}
+    </update>
+
+    <delete id="deleteRaceQuestionBankByQuestionId" parameterType="Long">
+        delete from race_question_bank where question_id = #{questionId}
+    </delete>
+
+    <delete id="deleteRaceQuestionBankByQuestionIds" parameterType="String">
+        delete from race_question_bank where question_id in 
+        <foreach item="questionId" collection="array" open="(" separator="," close=")">
+            #{questionId}
+        </foreach>
+    </delete>
+</mapper>
