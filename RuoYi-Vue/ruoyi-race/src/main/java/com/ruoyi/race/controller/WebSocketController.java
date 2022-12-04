@@ -7,7 +7,9 @@ import com.ruoyi.framework.web.service.TokenService;
 import com.ruoyi.race.config.WebSocketCustomEncoding;
 import com.ruoyi.race.domain.*;
 import com.ruoyi.race.service.IRaceParticipantService;
+import com.ruoyi.race.service.IRaceQuestionBankService;
 import com.ruoyi.race.service.IRaceRoomService;
+import io.netty.util.internal.ThreadLocalRandom;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +39,8 @@ public class WebSocketController {
     private static TokenService tokenService;
     private static IRaceParticipantService roomParticipantService;
     private static IRaceRoomService raceRoomService;
+    private static final int questionNumber = 48;
+    private static IRaceQuestionBankService questionBankService;
     private static RedisCache redisCache;
     private Session session;
     private Long userId;
@@ -51,6 +55,12 @@ public class WebSocketController {
 
     public static synchronized void subOnlineCount() {
         WebSocketController.onlineCount--;
+    }
+
+    @Autowired
+    public static void setQuestionBankService(IRaceQuestionBankService questionBankService) {
+        assert questionBankService != null;
+        WebSocketController.questionBankService = questionBankService;
     }
 
     @Autowired
@@ -120,31 +130,46 @@ public class WebSocketController {
                         return;
                     }
                 }
-                RaceRoom room = new RaceRoom();
-                room.setRoomJudge(this.userId);
-                room.setRoomType(0L);
-                raceRoomService.insertRaceRoom(room);
+                RaceRoom room = raceRoomService.selectRaceRoomByJudge(userId);
+                if (room == null) {
+                    room = new RaceRoom();
+                    room.setRoomJudge(this.userId);
+                    room.setRoomType(0L);
+                    raceRoomService.insertRaceRoom(room);
+                }
+
                 RaceParticipant participant = new RaceParticipant();
                 participant.setParticipantRoom(room.getRoomId());
-                participant.setParticipantRoom(room.getRoomId());
 
-                SocketResponseMessage msg = new SocketResponseMessage(200, "join");
+                SocketResponseMessage msg = new SocketResponseMessage(0, "join");
                 HashMap<String, Long> data = new HashMap<>();
                 data.put("roomId", room.getRoomId());
                 msg.setData(data);
 
+                sendMessage(msg);
+
                 for (Long userId : mes.getUsers()) {
                     participant.setParticipant(userId);
-                    if (!sendMessageByUserId(userId, msg)) {
-                        sendMessage(new SocketResponseMessage(601, "stop"));
-                        return;
-                    }
+                    sendMessageByUserId(userId, msg);
                     roomParticipantService.insertRaceParticipant(participant);
                 }
                 redisCache.setCacheObject(room.getRoomId().toString(), new AnswerRightInfo());
                 break;
             }
             case "invite_group": {
+                break;
+            }
+            case "get_question": {
+                SocketResponseMessage msg = new SocketResponseMessage(0);
+                AnswerRightInfo ase = redisCache.getCacheObject(mes.getRoomId().toString());
+                int questionIdx = 0;
+                do {
+                    questionIdx = ThreadLocalRandom.current().nextInt(1, questionNumber);
+                } while (ase.getQuestion().contains(questionIdx));
+                ase.getQuestion().set(mes.getIndex(), questionIdx);
+                RaceQuestionBank question = questionBankService.selectRaceQuestionBankByQuestionId((long) questionIdx);
+                msg.setData(question);
+                sendMessage(msg);
                 break;
             }
             case "answer_right": {
@@ -174,12 +199,10 @@ public class WebSocketController {
         this.session.getBasicRemote().sendObject(message);
     }
 
-    public boolean sendMessageByUserId(Long userId, Object message) throws IOException, EncodeException {
+    public void sendMessageByUserId(Long userId, Object message) throws IOException, EncodeException {
         if (webSocketMap.containsKey(userId)) {
             webSocketMap.get(userId).sendMessage(message);
-            return true;
         }
-        return false;
     }
 
 }
