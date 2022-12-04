@@ -1,50 +1,50 @@
 <template>
   <div class="app-container">
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="${comment}" prop="question">
+      <el-form-item label="题目" prop="question">
         <el-input
           v-model="queryParams.question"
-          placeholder="请输入${comment}"
+          placeholder="请输入题目"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="${comment}" prop="a">
+      <el-form-item label="选项A" prop="a">
         <el-input
           v-model="queryParams.a"
-          placeholder="请输入${comment}"
+          placeholder="请输入选项A"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="${comment}" prop="b">
+      <el-form-item label="选项B" prop="b">
         <el-input
           v-model="queryParams.b"
-          placeholder="请输入${comment}"
+          placeholder="请输入选项B"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="${comment}" prop="c">
+      <el-form-item label="选项C" prop="c">
         <el-input
           v-model="queryParams.c"
-          placeholder="请输入${comment}"
+          placeholder="请输入选项C"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="${comment}" prop="d">
+      <el-form-item label="选项D" prop="d">
         <el-input
           v-model="queryParams.d"
-          placeholder="请输入${comment}"
+          placeholder="请输入选项D"
           clearable
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="${comment}" prop="answer">
+      <el-form-item label="答案" prop="answer">
         <el-input
           v-model="queryParams.answer"
-          placeholder="请输入${comment}"
+          placeholder="请输入答案"
           clearable
           @keyup.enter.native="handleQuery"
         />
@@ -103,13 +103,13 @@
 
     <el-table v-loading="loading" :data="bankList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="${comment}" align="center" prop="questionId" />
-      <el-table-column label="${comment}" align="center" prop="question" />
-      <el-table-column label="${comment}" align="center" prop="a" />
-      <el-table-column label="${comment}" align="center" prop="b" />
-      <el-table-column label="${comment}" align="center" prop="c" />
-      <el-table-column label="${comment}" align="center" prop="d" />
-      <el-table-column label="${comment}" align="center" prop="answer" />
+      <el-table-column label="题目id" align="center" prop="questionId" />
+      <el-table-column label="题目" align="center" prop="question" />
+      <el-table-column label="选项A" align="center" prop="a" />
+      <el-table-column label="选项B" align="center" prop="b" />
+      <el-table-column label="选项C" align="center" prop="c" />
+      <el-table-column label="选项D" align="center" prop="d" />
+      <el-table-column label="答案" align="center" prop="answer" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
           <el-button
@@ -141,23 +141,23 @@
     <!-- 添加或修改题库对话框 -->
     <el-dialog :title="title" :visible.sync="open" width="500px" append-to-body>
       <el-form ref="form" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="${comment}" prop="question">
-          <el-input v-model="form.question" placeholder="请输入${comment}" />
+        <el-form-item label="题目" prop="question">
+          <el-input v-model="form.question" placeholder="请输入题目" />
         </el-form-item>
-        <el-form-item label="${comment}" prop="a">
-          <el-input v-model="form.a" placeholder="请输入${comment}" />
+        <el-form-item label="选项A" prop="a">
+          <el-input v-model="form.a" placeholder="请输入选项A" />
         </el-form-item>
-        <el-form-item label="${comment}" prop="b">
-          <el-input v-model="form.b" placeholder="请输入${comment}" />
+        <el-form-item label="选项B" prop="b">
+          <el-input v-model="form.b" placeholder="请输入选项B" />
         </el-form-item>
-        <el-form-item label="${comment}" prop="c">
-          <el-input v-model="form.c" placeholder="请输入${comment}" />
+        <el-form-item label="选项C" prop="c">
+          <el-input v-model="form.c" placeholder="请输入$选项C" />
         </el-form-item>
-        <el-form-item label="${comment}" prop="d">
-          <el-input v-model="form.d" placeholder="请输入${comment}" />
+        <el-form-item label="选项D" prop="d">
+          <el-input v-model="form.d" placeholder="请输入选项D" />
         </el-form-item>
-        <el-form-item label="${comment}" prop="answer">
-          <el-input v-model="form.answer" placeholder="请输入${comment}" />
+        <el-form-item label="答案" prop="answer">
+          <el-input v-model="form.answer" placeholder="请输入答案" />
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">

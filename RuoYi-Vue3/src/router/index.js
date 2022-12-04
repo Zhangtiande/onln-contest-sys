@@ -2,6 +2,7 @@ import { createWebHistory, createRouter } from 'vue-router'
 /* Layout */
 import Layout from '@/layout'
 import race from "@/views/race";
+import online from "@/views/race/online/index.vue";
 
 /**
  * Note: 路由配置项
@@ -88,6 +89,10 @@ export const constantRoutes = [
   {
     path: '/race',
     component: race,
+  },
+  {
+    path: "/race/online",
+    component: online,
   }
 ]
 
