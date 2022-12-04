@@ -1,12 +1,13 @@
 package com.ruoyi.race.service.impl;
 
-import java.util.List;
 import com.ruoyi.common.utils.DateUtils;
+import com.ruoyi.race.domain.RaceRoom;
+import com.ruoyi.race.mapper.RaceRoomMapper;
+import com.ruoyi.race.service.IRaceRoomService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.ruoyi.race.mapper.RaceRoomMapper;
-import com.ruoyi.race.domain.RaceRoom;
-import com.ruoyi.race.service.IRaceRoomService;
+
+import java.util.List;
 
 /**
  * 竞赛房间Service业务层处理
@@ -83,13 +84,23 @@ public class RaceRoomServiceImpl implements IRaceRoomService
 
     /**
      * 删除竞赛房间信息
-     * 
+     *
      * @param roomId 竞赛房间主键
      * @return 结果
      */
     @Override
-    public int deleteRaceRoomByRoomId(Long roomId)
-    {
+    public int deleteRaceRoomByRoomId(Long roomId) {
         return raceRoomMapper.deleteRaceRoomByRoomId(roomId);
+    }
+
+    /**
+     * 比赛房间
+     *
+     * @param judge 裁判
+     * @return int
+     */
+    @Override
+    public RaceRoom selectRaceRoomByJudge(Long judge) {
+        return raceRoomMapper.selectRaceRoomByJudge(judge);
     }
 }

@@ -1,25 +1,19 @@
 package com.ruoyi.race.controller;
 
-import java.util.List;
-import javax.servlet.http.HttpServletResponse;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.race.domain.RaceRoom;
 import com.ruoyi.race.service.IRaceRoomService;
-import com.ruoyi.common.utils.poi.ExcelUtil;
-import com.ruoyi.common.core.page.TableDataInfo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletResponse;
+import java.util.List;
 
 /**
  * 竞赛房间Controller
@@ -96,9 +90,17 @@ public class RaceRoomController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('race:room:remove')")
     @Log(title = "竞赛房间", businessType = BusinessType.DELETE)
-	@DeleteMapping("/{roomIds}")
-    public AjaxResult remove(@PathVariable Long[] roomIds)
-    {
+    @DeleteMapping("/{roomIds}")
+    public AjaxResult remove(@PathVariable Long[] roomIds) {
         return toAjax(raceRoomService.deleteRaceRoomByRoomIds(roomIds));
+    }
+
+    /**
+     * 获取竞赛房间详细信息
+     */
+    @PreAuthorize("@ss.hasPermi('race:room:query')")
+    @GetMapping(value = "/unfinished/{judge}")
+    public AjaxResult getInfoByJudge(@PathVariable("judge") Long judge) {
+        return success(raceRoomService.selectRaceRoomByRoomId(judge));
     }
 }
