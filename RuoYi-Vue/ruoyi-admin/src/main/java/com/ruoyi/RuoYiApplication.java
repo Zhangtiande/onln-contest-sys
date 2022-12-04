@@ -2,7 +2,6 @@ package com.ruoyi;
 
 import org.apache.catalina.connector.Connector;
 import org.apache.tomcat.websocket.server.WsSci;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
@@ -18,8 +17,6 @@ import org.springframework.context.annotation.Bean;
  */
 @SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
 public class RuoYiApplication {
-    @Value("${fcayj.port}")
-    private Integer httpPort;
 
     public static void main(String[] args) {
         // System.setProperty("spring.devtools.restart.enabled", "false");
@@ -47,7 +44,7 @@ public class RuoYiApplication {
         Connector connector = new Connector("org.apache.coyote.http11.Http11NioProtocol");
         connector.setScheme("http");
         connector.setSecure(false);
-        connector.setPort(httpPort);
+        connector.setPort(4040);
         return connector;
     }
 
