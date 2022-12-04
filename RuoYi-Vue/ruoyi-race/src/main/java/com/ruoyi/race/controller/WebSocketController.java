@@ -189,6 +189,13 @@ public class WebSocketController {
                 }
                 break;
             }
+            case "end_game": {
+                AnswerRightInfo ase = redisCache.getCacheObject(mes.getRoomId().toString());
+                SocketResponseMessage msg = new SocketResponseMessage(0, "end_game");
+                for (Long userId : ase.getPlayers()) {
+                    sendMessageByUserId(userId, msg);
+                }
+            }
         }
     }
 
