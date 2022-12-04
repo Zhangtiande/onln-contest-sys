@@ -58,7 +58,7 @@ public class WebSocketController {
     }
 
     @Autowired
-    public static void setQuestionBankService(IRaceQuestionBankService questionBankService) {
+    public void setQuestionBankService(IRaceQuestionBankService questionBankService) {
         assert questionBankService != null;
         WebSocketController.questionBankService = questionBankService;
     }
@@ -140,6 +140,8 @@ public class WebSocketController {
 
                 RaceParticipant participant = new RaceParticipant();
                 participant.setParticipantRoom(room.getRoomId());
+                AnswerRightInfo answerRightInfo = new AnswerRightInfo();
+                int i = 0;
 
                 SocketResponseMessage msg = new SocketResponseMessage(0, "join");
                 HashMap<String, Long> data = new HashMap<>();
@@ -151,6 +153,7 @@ public class WebSocketController {
                 for (Long userId : mes.getUsers()) {
                     participant.setParticipant(userId);
                     sendMessageByUserId(userId, msg);
+                    answerRightInfo.getPlayers()[i++] = userId;
                     roomParticipantService.insertRaceParticipant(participant);
                 }
                 redisCache.setCacheObject(room.getRoomId().toString(), new AnswerRightInfo());
@@ -162,13 +165,16 @@ public class WebSocketController {
             case "get_question": {
                 SocketResponseMessage msg = new SocketResponseMessage(0);
                 AnswerRightInfo ase = redisCache.getCacheObject(mes.getRoomId().toString());
-                int questionIdx = 0;
+                int questionIdx;
                 do {
                     questionIdx = ThreadLocalRandom.current().nextInt(1, questionNumber);
-                } while (ase.getQuestion().contains(questionIdx));
-                ase.getQuestion().set(mes.getIndex(), questionIdx);
+                } while (ase.getQuestions().contains(questionIdx));
+                ase.getQuestions().set(mes.getIndex(), questionIdx);
                 RaceQuestionBank question = questionBankService.selectRaceQuestionBankByQuestionId((long) questionIdx);
                 msg.setData(question);
+                for (Long userId : ase.getPlayers()) {
+                    sendMessageByUserId(userId, msg);
+                }
                 sendMessage(msg);
                 break;
             }
@@ -176,10 +182,10 @@ public class WebSocketController {
                 AnswerRightInfo ase = redisCache.getCacheObject(mes.getRoomId().toString());
                 HashMap<Integer, Boolean> map = ase.getHasSignAnswer();
                 if (map.containsKey(mes.getIndex())) {
-                    sendMessage(new SocketResponseMessage(-1));
+                    sendMessage(new SocketResponseMessage(0, "lost"));
                 } else {
                     map.put(mes.getIndex(), true);
-                    sendMessage(0);
+                    sendMessage(new SocketResponseMessage(0, "get"));
                 }
                 break;
             }
@@ -189,10 +195,6 @@ public class WebSocketController {
     @OnError
     public void onError(Session session, Throwable error) {
         error.printStackTrace();
-    }
-
-    public void sendMessage(String message) throws IOException {
-        this.session.getBasicRemote().sendText(message);
     }
 
     public void sendMessage(Object message) throws IOException, EncodeException {

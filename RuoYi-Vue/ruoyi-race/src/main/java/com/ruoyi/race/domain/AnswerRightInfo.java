@@ -20,15 +20,22 @@ public class AnswerRightInfo implements Serializable {
      */
     private final HashMap<Integer, Boolean> hasSignAnswer;
     private final List<Integer> questions;
+    private final Long[] players;
 
     public AnswerRightInfo() {
         this.hasSignAnswer = new HashMap<>();
         questions = new ArrayList<>(10);
+        players = new Long[2];
     }
 
-    public List<Integer> getQuestion() {
+    public List<Integer> getQuestions() {
         return questions;
     }
+
+    public Long[] getPlayers() {
+        return players;
+    }
+
 
     public HashMap<Integer, Boolean> getHasSignAnswer() {
         return hasSignAnswer;
