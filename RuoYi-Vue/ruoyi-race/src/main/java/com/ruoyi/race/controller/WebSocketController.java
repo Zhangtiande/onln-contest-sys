@@ -29,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author kjleo
  * @date 2022/12/03
  */
-@ServerEndpoint(value = "/ws/{token}", encoders = WebSocketCustomEncoding.class)
+@ServerEndpoint(value = "/wss/{token}", encoders = WebSocketCustomEncoding.class)
 @Component
 public class WebSocketController {
     private final static Logger logger = LogManager.getLogger(WebSocketController.class);

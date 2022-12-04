@@ -32,7 +32,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="selectRaceRoomByJudge" parameterType="Long" resultMap="RaceRoomResult">
         <include refid="selectRaceRoomVo"/>
-        where room_judge = #{roomJudge} and status == 1
+        where room_judge = #{roomJudge} and status = 1
     </select>
 
     <insert id="insertRaceRoom" parameterType="RaceRoom" useGeneratedKeys="true" keyProperty="roomId">
