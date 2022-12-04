@@ -260,6 +260,9 @@ export default {
           this.keyStart = true
           break;
         }
+        case 'end_game': {
+          this.leaveRoom()
+        }
       }
     }
     window.onkeydown = (e) => {
