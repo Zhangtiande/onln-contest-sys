@@ -16,16 +16,16 @@ export const useZgEngineStore = defineStore('ZgEngine', () => {
         remoteLogLevel: 5,
         roomFlag: true,
         testEnvironment: false, // 摄像头
-        videoType: null,
+        videoType: "VP8",
         roomId: 0,
-        roleId: 10,
-        streamID :(Date.now() & 20010327).toString()
+        roleId: 0,
+        streamID: (Date.now() & 20010327).toString()
     }
     const engine = new ZegoExpressEngine(_config.appid, baseApi + ":15443/dispatch/connection");
 
     async function login(token) {
         return await engine.loginHall(token, {
-            userID: _config.nickName, userName: _config.idName
+            userID: _config.idName, userName: _config.nickName
         }, {
             deviceID: _config.deviceId,
             deviceType: _config.deviceType,
@@ -39,17 +39,18 @@ export const useZgEngineStore = defineStore('ZgEngine', () => {
         engine.checkSystemRequirements(null, 0).then((res) => {
             const {camera, screenSharing, videoCodec, webRTC} = res;
 
-            if (!webRTC) {
-                alert('浏览器不支持 webRtc，更换最新的 chrome 浏览器');
-            }
-            if (!camera) {
-                alert('浏览器不支持获取摄像头麦克风设备');
-            }
-            if (!screenSharing) {
-                alert('浏览器不支持屏幕共享');
-            }
+            if (!camera || !screenSharing || !webRTC) {
+                let msg = "浏览器检测中，"
 
+                if (!camera) msg += "摄像头、"
+                if (!screenSharing) msg += "屏幕共享、"
+                if (!webRTC) msg += "WebRtc"
+                msg += "出现问题，请重新进入页面或换一个浏览器进入页面。"
+                window.alert(msg)
+                return
+            }
             _config.videoType = videoCodec.H264 ? 'H264' : 'VP8';
+
         })
     }
 
@@ -74,7 +75,7 @@ export const useZgEngineStore = defineStore('ZgEngine', () => {
     function init(config) {
         _config.deviceId = "device" + config.userId
         _config.nickName = config.nickName
-        _config.idName = config.userId.toString()
+        _config.idName = "fcayj" + config.userId.toString()
     }
 
     return {

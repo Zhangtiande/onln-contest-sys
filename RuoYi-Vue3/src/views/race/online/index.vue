@@ -28,10 +28,13 @@
               :value="item.value"></el-option>
         </el-select>
       </el-col>
-      <el-col :span="4">
-        <el-button :disabled="startState" ref="start" type="primary" @click="startCompetition">开始</el-button>
-        <el-button :disabled="endState" @click="nextQuestion" type="primary">下一题</el-button>
-        <el-button  @click="endGame" type="danger">结束比赛</el-button>
+      <el-col v-if="this.config.roleId === 1" :span="4">
+        <el-button :disabled="startState || this.config.roleId === 10" type="primary"
+                   @click="startCompetition">开始
+        </el-button>
+        <el-button :disabled="endState  || this.config.roleId === 10" type="primary" @click="nextQuestion">下一题
+        </el-button>
+        <el-button :disabled="this.config.roleId === 10" type="danger" @click="endGame">结束比赛</el-button>
       </el-col>
 
     </el-row>
@@ -40,16 +43,16 @@
   <div id="videoBox">
     <div id="judge">
       <span>{{ this.userInfo.judge }}</span>
-      <video ref="judge_video" poster="@/assets/images/profile.jpg"></video>
+      <video ref="judge_video" autoplay controls muted playsinline></video>
     </div>
     <div id="player">
       <div style="display: flex; flex-direction: column;align-items: center;">
         <span>{{ this.userInfo.player1 }}</span>
-        <video ref="player1" poster="@/assets/images/profile.jpg"></video>
+        <video ref="player1" autoplay controls muted playsinline></video>
       </div>
       <div style="display: flex; flex-direction: column;align-items: center;">
         <span>{{ this.userInfo.player2 }}</span>
-        <video ref="player2" poster="@/assets/images/profile.jpg"></video>
+        <video ref="player2" autoplay controls muted playsinline></video>
       </div>
     </div>
   </div>
@@ -93,17 +96,17 @@ export default {
   },
   methods: {
     enterRoom() {
-      this.engine.enterRoom(this.config.roomId, this.config.roleId).then((res) => {
+      this.engine.enterRoom(this.config.roomId.toString(), this.config.roleId).then((res) => {
         if (res.errorCode === 0) {
           this.$message.success("进入房间成功！")
           this.engine.createStream().then((res) => {
             this.stream = res
             if (this.config.roleId === 1) {
-              this.$refs.judge_video.srcObject = this.stream
+              this.$refs.judge_video.srcObject = res
               this.engine.startPublishingStream(this.config.streamID, res, {extraInfo: "judge"})
 
             } else {
-              this.$refs.player1.srcObject = this.stream
+              this.$refs.player1.srcObject = res
               this.engine.startPublishingStream(this.config.streamID, res)
             }
 
@@ -165,7 +168,7 @@ export default {
     nextQuestion() {
       this.questionIdx++
       this.startCompetition()
-      if (this.questionIdx === 10){
+      if (this.questionIdx === 10) {
         this.endState = true
       }
     },
@@ -196,16 +199,18 @@ export default {
         let stream = streamList.filter(v => {
           return this.playStreamList.every(e => e.streamID !== v.streamID);
         })
-        this.playStreamList.push(stream)
-        this.engine.startPlayingStream(stream.streamID).then(res => {
-          if (stream.extraInfo === "judge") {
-            this.$refs.judge_video.srcObject = res
-            this.userInfo.judge = stream.user.userName
-          } else {
-            this.$refs.player2.srcObject = res
-            this.userInfo.player2 = stream.user.userName
-          }
-        })
+        for (let streamElement of stream) {
+          this.playStreamList.push(streamElement)
+          this.engine.startPlayingStream(streamElement.streamID).then(res => {
+            if (streamElement.extraInfo === "judge") {
+              this.$refs.judge_video.srcObject = res
+              this.userInfo.judge = streamElement.user.userName
+            } else {
+              this.$refs.player2.srcObject = res
+              this.userInfo.player2 = streamElement.user.userName
+            }
+          })
+        }
       }
     });
     this.engine.on('IMRecvBroadcastMessage', (roomId, charData) => {
@@ -276,8 +281,7 @@ export default {
         this.keyStart = false
       }
     }
-
-    zg.checkBrowser()
+    // zg.checkBrowser()
     zg.listDevices().then((res) => {
       res.cameras.forEach((item) => {
         this.videoDevice.push({value: item.deviceID, label: item.deviceName})
@@ -291,9 +295,9 @@ export default {
       this.audioChoose = this.audioDevice[0]
       this.videoChoose = this.videoDevice[0]
       this.microphoneChoose = this.outputDevice[0]
+      this.enterRoom()
     })
     this.userInfo.player1 = this.config.nickName
-    this.enterRoom()
     this.$notify.warning({
       title: "注意事项",
       message: "1.当题目显示后按回车键抢答。\n2.抢答失败将被闭麦\n3.回答时间为10s，时间到将闭麦\n4.等待裁判计分并点击下一题循环\n" +

@@ -28,6 +28,9 @@
 <script>
 import {useWebSocket} from "@/store/modules/webSocket";
 import {getUserProfile} from "@/api/system/user";
+import {useZgEngineStore} from "@/store/modules/ZgEngine";
+import axios from "axios";
+import router from "@/router";
 
 export default {
   name: "index",
@@ -37,8 +40,8 @@ export default {
       wsStore: undefined,
       invite_solo_visibility: false,
       solo_form: {
-        first: 0,
-        second: 0
+        first: 100,
+        second: 101
       },
       zg: undefined
     }
@@ -54,9 +57,9 @@ export default {
         "seq": 1,
         "timestamp": Math.ceil(new Date().getTime() / 1000),
         "app_id": this.zg._config.appid,
-        "user_id": "ruoyi" + this.zg._config.userId,
+        "user_id": this.zg._config.userId,
         "user_name": this.zg._config.nickName,
-        "device_id": "device" + this.zg._config.userId,
+        "device_id": this.zg._config.deviceId,
         "queue_role": 1 || 10, // 队列 1 座席， 10 客户
         "room_role": 0,
         "net_type": 2
@@ -73,7 +76,6 @@ export default {
           }
         })
       })
-
     })
     this.wsStore = useWebSocket()
     this.wsStore.ws.onmessage = (e) => {
@@ -85,7 +87,7 @@ export default {
         }
       }
       if (mes.msg === "join") {
-        zg._config.roomId = mes.data.roomId
+        this.zg._config.roomId = mes.data.roomId
         router.push({path: "/race/online"})
       }
     }

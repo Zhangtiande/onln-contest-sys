@@ -3,8 +3,7 @@ import {getToken} from "@/utils/auth";
 
 export const useWebSocket = defineStore('WebSocket', () => {
 
-    const ws = new WebSocket("ws://159.138.0.68:4040/ws/" + getToken())
-
+    const ws = new WebSocket("wss://www.923yyds.top:4041/wss/" + getToken())
     function sendObject(data) {
         ws.send(JSON.stringify(data))
     }
