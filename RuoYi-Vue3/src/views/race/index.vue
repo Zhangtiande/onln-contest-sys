@@ -6,19 +6,35 @@
     <el-button ref="group" :loading="login_flag" class="button2" type="primary">组队pk(裁判)</el-button>
   </div>
   <el-dialog v-model="invite_solo_visibility" title="Shipping address">
-    <el-form :model="solo_form">
-      <el-form-item label="first">
-        <el-input v-model="solo_form.first" autocomplete="off" type="number"/>
+    <el-form ref="form" :model="solo_form" :rules="rules">
+      <el-form-item label="第一位选手" prop="first">
+        <el-autocomplete
+            v-model="solo_form.first"
+            :fetch-suggestions="querySearch"
+            class="inline-input w-50"
+            clearable
+            placeholder="请输入用户名称"
+            value-key="username"
+            @select="handleSelectOne"
+        />
       </el-form-item>
-      <el-form-item label="second">
-        <el-input v-model="solo_form.second" autocomplete="off" type="number"/>
+      <el-form-item label="第二位选手" prop="second">
+        <el-autocomplete
+            v-model="solo_form.second"
+            :fetch-suggestions="querySearch"
+            class="inline-input w-50"
+            clearable
+            placeholder="请输入用户名称"
+            value-key="username"
+            @select="handleSelectTwo"
+        />
       </el-form-item>
     </el-form>
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="invite_solo_visibility = false">Cancel</el-button>
+        <el-button @click="invite_solo_visibility = false">取消</el-button>
         <el-button type="primary" @click="solo">
-          Confirm
+          邀请
         </el-button>
       </span>
     </template>
@@ -27,23 +43,44 @@
 
 <script>
 import {useWebSocket} from "@/store/modules/webSocket";
-import {getUserProfile} from "@/api/system/user";
-import {useZgEngineStore} from "@/store/modules/ZgEngine";
-import axios from "axios";
 import router from "@/router";
+import {useZgEngineStore} from "@/store/modules/ZgEngine";
+import {getUserProfile} from "@/api/system/user";
+import axios from "axios";
+
+let onlineUsers = []
 
 export default {
   name: "index",
   data() {
+    const checkExist = (rule, value, callback) => {
+      if (this.solo_form.first === this.solo_form.second) {
+        return callback(new Error('玩家不能相同'))
+      }
+      if (!onlineUsers.some(item => item.username === value)) {
+        return callback(new Error("没有该玩家或该玩家不在线"))
+      }
+    };
     return {
       login_flag: false,
       wsStore: undefined,
       invite_solo_visibility: false,
       solo_form: {
-        first: 100,
-        second: 101
+        first: "",
+        second: ""
       },
-      zg: undefined
+      zg: undefined,
+      rules: {
+        first: [
+          {required: true, message: '请输入第一个玩家', trigger: 'blur'},
+          {validator: checkExist, trigger: 'blur'}
+        ],
+        second: [
+          {required: true, message: '请输入第二个玩家', trigger: 'blur'},
+          {validator: checkExist, trigger: 'blur'}
+        ]
+      },
+      users: []
     }
   },
   created() {
@@ -78,6 +115,9 @@ export default {
       })
     })
     this.wsStore = useWebSocket()
+    this.wsStore.ws.onopen = (_) => {
+      this.wsStore.sendObject({"handler": "get_player"})
+    }
     this.wsStore.ws.onmessage = (e) => {
       let mes = JSON.parse(e.data)
       if (mes.code !== 0) {
@@ -89,18 +129,43 @@ export default {
       if (mes.msg === "join") {
         this.zg._config.roomId = mes.data.roomId
         router.push({path: "/race/online"})
+      } else {
+        onlineUsers = mes.data
       }
     }
   },
   methods: {
     solo() {
-      let data = {
-        "handler": "invite_solo",
-        "users": [this.solo_form.first, this.solo_form.second]
+      this.$refs.form.validate((res, _) => {
+        if (!res)
+          return
+        let data = {
+          "handler": "invite_solo",
+          "users": JSON.parse(JSON.stringify(this.users))
+        }
+        this.wsStore.sendObject(data)
+        this.invite_solo_visibility = false
+        this.zg._config.roleId = 1
+      })
+    },
+    querySearch(queryString, cb) {
+      const results = queryString
+          ? onlineUsers.filter(this.createFilter(queryString))
+          : onlineUsers
+      cb(results)
+    },
+    createFilter(queryString) {
+      return (restaurant) => {
+        return (
+            restaurant.username.indexOf(queryString) === 0
+        )
       }
-      this.wsStore.sendObject(data)
-      this.invite_solo_visibility = false
-      this.zg._config.roleId = 1
+    },
+    handleSelectOne(item) {
+      this.users[0] = item.userId
+    },
+    handleSelectTwo(item) {
+      this.users[1] = item.userId
     },
   }
 }
