@@ -88,35 +88,10 @@ export default {
     this.zg.engine.setLogConfig({logLevel: 'error', remoteLogLevel: 'error', logUrl: ""})
     this.zg.engine.setDebugVerbose(false)
     this.zg.checkBrowser()
-    getUserProfile().then(res => {
-      this.zg.init(res.data)
-      let tokenData = {
-        "seq": 1,
-        "timestamp": Math.ceil(new Date().getTime() / 1000),
-        "app_id": this.zg._config.appid,
-        "user_id": this.zg._config.userId,
-        "user_name": this.zg._config.nickName,
-        "device_id": this.zg._config.deviceId,
-        "queue_role": 1 || 10, // 队列 1 座席， 10 客户
-        "room_role": 0,
-        "net_type": 2
-      }
-      axios.post("/token/logintoken", tokenData).then(res => {
-        this.zg.login(res.data.login_token).then((res) => {
-          if (res === true) {
-            this.$notify.success({
-              title: "登录成功",
-              message: "您可以等待别人邀请或者作为裁判邀请他人",
-              showClose: false
-            })
-            this.login_flag = false
-          }
-        })
-      })
-    })
     this.wsStore = useWebSocket()
     this.wsStore.ws.onopen = (_) => {
       this.wsStore.sendObject({"handler": "get_player"})
+      this.wsStore.sendObject({"handler": "get_token"})
     }
     this.wsStore.ws.onmessage = (e) => {
       let mes = JSON.parse(e.data)
@@ -129,6 +104,17 @@ export default {
       if (mes.msg === "join") {
         this.zg._config.roomId = mes.data.roomId
         router.push({path: "/race/online"})
+      } else if (mes.msg === "info") {
+        this.zg.init(mes.data).then((res) => {
+          if (res === true) {
+            this.$notify.success({
+              title: "登录成功",
+              message: "您可以等待别人邀请或者作为裁判邀请他人",
+              showClose: false
+            })
+            this.login_flag = false
+          }
+        })
       } else {
         onlineUsers = mes.data
       }
