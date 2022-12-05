@@ -19,6 +19,7 @@ import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -195,6 +196,14 @@ public class WebSocketController {
                 for (Long userId : ase.getPlayers()) {
                     sendMessageByUserId(userId, msg);
                 }
+            }
+            case "get_player": {
+                ArrayList<LoginUser> loginUsers = new ArrayList<>();
+                for (Long userId : userMap.keySet()) {
+                    loginUsers.add(userMap.get(userId));
+                }
+                sendMessage(new SocketResponseMessage(0, loginUsers));
+                break;
             }
         }
     }
