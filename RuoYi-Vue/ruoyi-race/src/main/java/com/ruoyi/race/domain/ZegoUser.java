@@ -8,7 +8,7 @@ import java.io.Serializable;
 public class ZegoUser implements Serializable {
 
     public final int seq = 1;
-    public final double timestamp;
+    public final Long timestamp;
     public final int app_id = 1234567;
     public final String user_id;
     public final String user_name;
@@ -19,7 +19,7 @@ public class ZegoUser implements Serializable {
     public String token;
 
     public ZegoUser(LoginUser user) {
-        timestamp = Math.ceil(System.currentTimeMillis() / 1000.0);
+        timestamp = (long) Math.ceil(System.currentTimeMillis() / 1000.0);
         user_id = "fcayj" + user.getUserId();
         user_name = user.getUser().getNickName();
         device_id = "device" + user.getUserId();

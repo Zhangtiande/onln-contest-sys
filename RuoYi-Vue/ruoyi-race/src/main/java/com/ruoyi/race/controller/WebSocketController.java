@@ -218,7 +218,7 @@ public class WebSocketController {
                 ZegoUser zegoUser = new ZegoUser(user);
                 RequestBody requestJsonBody = RequestBody.create(zegoUser.toString(), JSON_MEDIA_TYPE);
                 Request postRequest = new Request.Builder()
-                        .url("https://experience.zegonetwork.com:15443/dispatch/connection")
+                        .url("https://experience.zegonetwork.com:16443/logintoken")
                         .post(requestJsonBody)
                         .build();
                 try {
