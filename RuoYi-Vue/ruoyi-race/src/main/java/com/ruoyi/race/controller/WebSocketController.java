@@ -1,6 +1,7 @@
 package com.ruoyi.race.controller;
 
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.common.core.redis.RedisCache;
 import com.ruoyi.framework.web.service.TokenService;
@@ -10,6 +11,10 @@ import com.ruoyi.race.service.IRaceParticipantService;
 import com.ruoyi.race.service.IRaceQuestionBankService;
 import com.ruoyi.race.service.IRaceRoomService;
 import io.netty.util.internal.ThreadLocalRandom;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +27,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static org.web3j.protocol.http.HttpService.JSON_MEDIA_TYPE;
 
 
 /**
@@ -36,6 +43,7 @@ public class WebSocketController {
     private final static Logger logger = LogManager.getLogger(WebSocketController.class);
     public static ConcurrentHashMap<Long, WebSocketController> webSocketMap = new ConcurrentHashMap<>();
     public static ConcurrentHashMap<Long, LoginUser> userMap = new ConcurrentHashMap<>();
+    private static final OkHttpClient httpClient = new OkHttpClient();
     private static int onlineCount = 0;
     private static TokenService tokenService;
     private static IRaceParticipantService roomParticipantService;
@@ -204,6 +212,28 @@ public class WebSocketController {
                 }
                 sendMessage(new SocketResponseMessage(0, loginUsers));
                 break;
+            }
+            case "get_token": {
+                LoginUser user = userMap.get(userId);
+                ZegoUser zegoUser = new ZegoUser(user);
+                RequestBody requestJsonBody = RequestBody.create(zegoUser.toString(), JSON_MEDIA_TYPE);
+                Request postRequest = new Request.Builder()
+                        .url("https://experience.zegonetwork.com:15443/dispatch/connection")
+                        .post(requestJsonBody)
+                        .build();
+                try {
+                    Response response = httpClient.newCall(postRequest).execute();
+                    if (response.body() != null) {
+                        JSONObject json = JSONObject.parseObject(response.body().string());
+                        zegoUser.setToken(json.getString("login_token"));
+                        sendMessage(new SocketResponseMessage(0, "info", zegoUser));
+                    } else {
+                        sendMessage(new SocketResponseMessage(500, "error"));
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
             }
         }
     }
