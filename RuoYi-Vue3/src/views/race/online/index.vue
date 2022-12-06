@@ -28,13 +28,16 @@
               :value="item.value"></el-option>
         </el-select>
       </el-col>
-      <el-col v-if="this.config.roleId === 1" :span="4">
-        <el-button :disabled="startState || this.config.roleId === 10" type="primary"
+      <el-col v-if="this.config.roleId === 1" :span="4"
+              style="display: flex;flex-direction: row;justify-content: space-between;">
+        <el-button :disabled="startState" type="success"
                    @click="startCompetition">开始
         </el-button>
-        <el-button :disabled="endState  || this.config.roleId === 10" type="primary" @click="nextQuestion">下一题
-        </el-button>
-        <el-button :disabled="this.config.roleId === 10" type="danger" @click="endGame">结束比赛</el-button>
+        <el-badge :value="10-this.questionIdx" class="item" type="primary">
+          <el-button :disabled="endState" type="primary" @click="nextQuestion">下一题
+          </el-button>
+        </el-badge>
+        <el-button type="danger" @click="endGame">结束比赛</el-button>
       </el-col>
 
     </el-row>
@@ -250,9 +253,11 @@ export default {
           break;
         }
         case "lost": {
-          this.$message.info("抢答失败，不开启麦克风")
-          this.muteMicrophone(true)
-          this.questionIdx++
+          if (mes.data === this.questionIdx) {
+            this.$message.info("抢答失败，不开启麦克风")
+            this.muteMicrophone(true)
+            this.questionIdx++
+          }
           break;
         }
         case "question" : {
@@ -280,6 +285,11 @@ export default {
         }
         case 'end_game': {
           this.leaveRoom()
+          break;
+        }
+        default: {
+          this.$notify.warning("发生异常，请查看控制台")
+          console.log(mes)
         }
       }
     }
@@ -317,7 +327,7 @@ export default {
     }
     this.$notify.warning({
       title: "注意事项",
-      message: "1.当题目显示后按回车键抢答。\n2.抢答失败将被闭麦\n3.回答时间为10s，时间到将闭麦\n4.等待裁判计分并点击下一题循环\n" +
+      message: "1.当题目显示后按回车键抢答。\n2.抢答失败将被闭麦，题目不会自动关闭，请手动关闭\n3.回答时间为10s，时间到将闭麦\n4.等待裁判计分并点击下一题\n" +
           "5.十题后比赛结束，裁判宣判结果后可点击结束比赛按钮",
       duration: 10000,
       showClose: true
