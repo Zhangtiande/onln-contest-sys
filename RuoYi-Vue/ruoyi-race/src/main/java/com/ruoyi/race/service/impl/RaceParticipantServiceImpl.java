@@ -1,11 +1,12 @@
 package com.ruoyi.race.service.impl;
 
-import java.util.List;
+import com.ruoyi.race.domain.RaceParticipant;
+import com.ruoyi.race.mapper.RaceParticipantMapper;
+import com.ruoyi.race.service.IRaceParticipantService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.ruoyi.race.mapper.RaceParticipantMapper;
-import com.ruoyi.race.domain.RaceParticipant;
-import com.ruoyi.race.service.IRaceParticipantService;
+
+import java.util.List;
 
 /**
  * 比赛参与人员Service业务层处理
@@ -81,13 +82,33 @@ public class RaceParticipantServiceImpl implements IRaceParticipantService
 
     /**
      * 删除比赛参与人员信息
-     * 
+     *
      * @param participantId 比赛参与人员主键
      * @return 结果
      */
     @Override
-    public int deleteRaceParticipantByParticipantId(Long participantId)
-    {
+    public int deleteRaceParticipantByParticipantId(Long participantId) {
         return raceParticipantMapper.deleteRaceParticipantByParticipantId(participantId);
+    }
+
+    /**
+     * 删除竞赛参与者通过房间id
+     *
+     * @param roomId 房间id
+     */
+    @Override
+    public void deleteRaceParticipantByRoomId(Long roomId) {
+        raceParticipantMapper.deleteRaceParticipantByRoomId(roomId);
+    }
+
+    /**
+     * 查询比赛房间用户列表
+     *
+     * @param roomId 房间id
+     * @return int
+     */
+    @Override
+    public List<Long> selectRaceUserListByRoom(Long roomId) {
+        return raceParticipantMapper.selectRaceUserListByRoom(roomId);
     }
 }

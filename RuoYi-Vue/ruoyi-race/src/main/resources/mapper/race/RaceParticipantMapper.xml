@@ -1,46 +1,54 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ruoyi.race.mapper.RaceParticipantMapper">
-    
+
     <resultMap type="RaceParticipant" id="RaceParticipantResult">
-        <result property="participantId"    column="participant_id"    />
-        <result property="participant"    column="participant"    />
-        <result property="participantGroup"    column="participant_group"    />
-        <result property="participantRoom"    column="participant_room"    />
+        <result property="participantId" column="participant_id"/>
+        <result property="participant" column="participant"/>
+        <result property="participantGroup" column="participant_group"/>
+        <result property="participantRoom" column="participant_room"/>
     </resultMap>
 
     <sql id="selectRaceParticipantVo">
-        select participant_id, participant, participant_group, participant_room from race_participant
+        select participant_id, participant, participant_group, participant_room
+        from race_participant
     </sql>
 
     <select id="selectRaceParticipantList" parameterType="RaceParticipant" resultMap="RaceParticipantResult">
         <include refid="selectRaceParticipantVo"/>
-        <where>  
-            <if test="participant != null "> and participant = #{participant}</if>
-            <if test="participantGroup != null "> and participant_group = #{participantGroup}</if>
-            <if test="participantRoom != null "> and participant_room = #{participantRoom}</if>
+        <where>
+            <if test="participant != null ">and participant = #{participant}</if>
+            <if test="participantGroup != null ">and participant_group = #{participantGroup}</if>
+            <if test="participantRoom != null ">and participant_room = #{participantRoom}</if>
         </where>
     </select>
-    
+
+    <select id="selectRaceUserListByRoom" parameterType="Long" resultType="java.lang.Long">
+        select participant
+        from race_participant
+        where participant_room = #{participantRoom}
+    </select>
+
     <select id="selectRaceParticipantByParticipantId" parameterType="Long" resultMap="RaceParticipantResult">
         <include refid="selectRaceParticipantVo"/>
         where participant_id = #{participantId}
     </select>
-        
-    <insert id="insertRaceParticipant" parameterType="RaceParticipant" useGeneratedKeys="true" keyProperty="participantId">
+
+    <insert id="insertRaceParticipant" parameterType="RaceParticipant" useGeneratedKeys="true"
+            keyProperty="participantId">
         insert into race_participant
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="participant != null">participant,</if>
             <if test="participantGroup != null">participant_group,</if>
             <if test="participantRoom != null">participant_room,</if>
-         </trim>
+        </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="participant != null">#{participant},</if>
             <if test="participantGroup != null">#{participantGroup},</if>
             <if test="participantRoom != null">#{participantRoom},</if>
-         </trim>
+        </trim>
     </insert>
 
     <update id="updateRaceParticipant" parameterType="RaceParticipant">
@@ -54,11 +62,19 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </update>
 
     <delete id="deleteRaceParticipantByParticipantId" parameterType="Long">
-        delete from race_participant where participant_id = #{participantId}
+        delete
+        from race_participant
+        where participant_id = #{participantId}
+    </delete>
+
+    <delete id="deleteRaceParticipantByRoomId" parameterType="Long">
+        delete
+        from race_participant
+        where participant_room = #{participantRoom}
     </delete>
 
     <delete id="deleteRaceParticipantByParticipantIds" parameterType="String">
-        delete from race_participant where participant_id in 
+        delete from race_participant where participant_id in
         <foreach item="participantId" collection="array" open="(" separator="," close=")">
             #{participantId}
         </foreach>
