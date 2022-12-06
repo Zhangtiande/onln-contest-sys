@@ -92,6 +92,7 @@ export default {
       },
       keyStart: false,
       questionIdx: 0,
+      playIdx: 1
     }
   },
   methods: {
@@ -200,16 +201,28 @@ export default {
           return this.playStreamList.every(e => e.streamID !== v.streamID);
         })
         for (let streamElement of stream) {
-          this.playStreamList.push(streamElement)
           this.engine.startPlayingStream(streamElement.streamID).then(res => {
             if (streamElement.extraInfo === "judge") {
               this.$refs.judge_video.srcObject = res
               this.userInfo.judge = streamElement.user.userName
             } else {
-              this.$refs.player2.srcObject = res
-              this.userInfo.player2 = streamElement.user.userName
+              if (this.config.roleId === 1) {
+                if (this.playIdx === 2) {
+                  this.$refs.player2.srcObject = res
+                  this.userInfo.player2 = streamElement.user.userName
+                } else {
+                  this.$refs.player1.srcObject = res
+                  this.userInfo.player1 = streamElement.user.userName
+                  this.playIdx++
+                }
+              } else {
+                this.$refs.player2.srcObject = res
+                this.userInfo.player2 = streamElement.user.userName
+              }
+
             }
           })
+          this.playStreamList.push(streamElement)
         }
       }
     });
@@ -221,12 +234,12 @@ export default {
       switch (mes.msg) {
         case "get" : {
           this.muteMicrophone(false)
-          setInterval(() => {
+          setTimeout(() => {
             this.$notify.warning({
               title: "三秒后闭麦",
               duration: 3000
             })
-            setInterval(() => {
+            setTimeout(() => {
               this.$notify.warning({
                 title: "闭麦",
                 duration: 3000
@@ -242,12 +255,13 @@ export default {
           this.questionIdx++
           break;
         }
-        case "question": {
+        case "question" : {
           if (this.config.roleId !== 1) {
             this.muteMicrophone(true)
           }
-          let title = (this.questionIdx + 1) + "." + mes.question
-          let content = "A." + mes.a + '\n' + "B." + mes.b + '\n' + "C." + mes.c + '\n' + "D." + mes.d
+          console.log(mes)
+          let title = (this.questionIdx + 1) + "." + mes.data.question
+          let content = "A." + mes.data.a + '\n' + "B." + mes.data.b + '\n' + "C." + mes.data.c + '\n' + "D." + mes.data.d
           this.$notify.info({
             title: title,
             message: content,
@@ -255,9 +269,8 @@ export default {
             showClose: true
           })
           if (this.config.roleId === 1) {
-            this.$notify.success({
-              title: "正确答案",
-              message: mes.answer,
+            this.$message.success({
+              message: "正确答案：" + mes.data.answer,
               duration: 0,
               showClose: true
             })
@@ -271,7 +284,7 @@ export default {
       }
     }
     window.onkeydown = (e) => {
-      if (e.key === "Enter" && this.keyStart && this.config.roleId === 10) {
+      if (e.key === "Enter" && this.keyStart && this.config.roleId !== 1) {
         let data = {
           "index": this.questionIdx,
           "roomId": this.config.roomId,
@@ -297,12 +310,17 @@ export default {
       this.microphoneChoose = this.outputDevice[0]
       this.enterRoom()
     })
-    this.userInfo.player1 = this.config.nickName
+    if (this.config.roleId === 1) {
+      this.userInfo.judge = this.config.nickName
+    } else {
+      this.userInfo.player1 = this.config.nickName
+    }
     this.$notify.warning({
       title: "注意事项",
       message: "1.当题目显示后按回车键抢答。\n2.抢答失败将被闭麦\n3.回答时间为10s，时间到将闭麦\n4.等待裁判计分并点击下一题循环\n" +
           "5.十题后比赛结束，裁判宣判结果后可点击结束比赛按钮",
-      duration: 10000
+      duration: 10000,
+      showClose: true
     })
   }
 }

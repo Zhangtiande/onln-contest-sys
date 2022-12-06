@@ -1,6 +1,6 @@
 <template>
   <div class="button-group">
-    <el-button ref="solo" :loading="login_flag" class="button1" type="primary" @click="invite_solo_visibility = true">
+    <el-button ref="solo" :loading="login_flag" class="button1" type="primary" @click="inviteSolo">
       单人pk(裁判)
     </el-button>
     <el-button ref="group" :loading="login_flag" class="button2" type="primary">组队pk(裁判)</el-button>
@@ -14,7 +14,7 @@
             class="inline-input w-50"
             clearable
             placeholder="请输入用户名称"
-            value-key="username"
+            value-key="nickName"
             @select="handleSelectOne"
         />
       </el-form-item>
@@ -25,7 +25,7 @@
             class="inline-input w-50"
             clearable
             placeholder="请输入用户名称"
-            value-key="username"
+            value-key="nickName"
             @select="handleSelectTwo"
         />
       </el-form-item>
@@ -45,8 +45,6 @@
 import {useWebSocket} from "@/store/modules/webSocket";
 import router from "@/router";
 import {useZgEngineStore} from "@/store/modules/ZgEngine";
-import {getUserProfile} from "@/api/system/user";
-import axios from "axios";
 
 let onlineUsers = []
 
@@ -57,9 +55,10 @@ export default {
       if (this.solo_form.first === this.solo_form.second) {
         return callback(new Error('玩家不能相同'))
       }
-      if (!onlineUsers.some(item => item.username === value)) {
+      if (!onlineUsers.some(item => item.nickName === value)) {
         return callback(new Error("没有该玩家或该玩家不在线"))
       }
+      return callback()
     };
     return {
       login_flag: false,
@@ -116,13 +115,16 @@ export default {
           }
         })
       } else {
-        onlineUsers = mes.data
+        onlineUsers = []
+        for (let user of mes.data) {
+          onlineUsers.push(user.user)
+        }
       }
     }
   },
   methods: {
     solo() {
-      this.$refs.form.validate((res, _) => {
+      this.$refs.form.validate((res) => {
         if (!res)
           return
         let data = {
@@ -143,7 +145,7 @@ export default {
     createFilter(queryString) {
       return (restaurant) => {
         return (
-            restaurant.username.indexOf(queryString) === 0
+            restaurant.nickName.indexOf(queryString) === 0
         )
       }
     },
@@ -153,6 +155,10 @@ export default {
     handleSelectTwo(item) {
       this.users[1] = item.userId
     },
+    inviteSolo() {
+      this.wsStore.sendObject({"handler": "get_player"})
+      this.invite_solo_visibility = true
+    }
   }
 }
 </script>

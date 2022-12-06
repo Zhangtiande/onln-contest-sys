@@ -113,7 +113,7 @@ function handleLogin() {
       }
       // 调用action的登录方法
       userStore.login(loginForm.value).then(() => {
-        userStore.roles.includes("admin")? router.push({path: "/"}) : router.push({path: "/race"})
+        router.push({path: "/race"})
       }).catch(() => {
         loading.value = false;
         // 重新获取验证码
