@@ -65,5 +65,5 @@ public interface IRaceRoomService {
      * @param judge 裁判
      * @return int
      */
-    public RaceRoom selectRaceRoomByJudge(Long judge);
+    public RaceRoom selectRaceRoomByJudge(Long judge, int roomType);
 }

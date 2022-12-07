@@ -100,7 +100,7 @@ public class RaceRoomServiceImpl implements IRaceRoomService
      * @return int
      */
     @Override
-    public RaceRoom selectRaceRoomByJudge(Long judge) {
-        return raceRoomMapper.selectRaceRoomByJudge(judge);
+    public RaceRoom selectRaceRoomByJudge(Long judge, int roomType) {
+        return raceRoomMapper.selectRaceRoomByJudge(judge, roomType);
     }
 }

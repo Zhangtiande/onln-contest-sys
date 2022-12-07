@@ -29,6 +29,12 @@ public class AnswerRightInfo implements Serializable {
         players = new ArrayList<>();
     }
 
+    public AnswerRightInfo(ArrayList<Long> players) {
+        this.hasSignAnswer = new HashMap<>();
+        questions = new ArrayList<>(10);
+        this.players = players;
+    }
+
     public ArrayList<Long> getPlayers() {
         return players;
     }

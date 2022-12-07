@@ -1,6 +1,7 @@
 package com.ruoyi.race.mapper;
 
 import com.ruoyi.race.domain.RaceRoom;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -65,5 +66,5 @@ public interface RaceRoomMapper {
      * @param judge 裁判
      * @return int
      */
-    public RaceRoom selectRaceRoomByJudge(Long judge);
+    public RaceRoom selectRaceRoomByJudge(@Param("roomJudge") Long judge, @Param("roomType") int roomType);
 }

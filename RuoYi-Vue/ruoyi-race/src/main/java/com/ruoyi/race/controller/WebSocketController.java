@@ -2,6 +2,7 @@ package com.ruoyi.race.controller;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.common.core.redis.RedisCache;
 import com.ruoyi.framework.web.service.TokenService;
@@ -10,6 +11,7 @@ import com.ruoyi.race.domain.*;
 import com.ruoyi.race.service.IRaceParticipantService;
 import com.ruoyi.race.service.IRaceQuestionBankService;
 import com.ruoyi.race.service.IRaceRoomService;
+import com.ruoyi.system.service.ISysUserService;
 import io.netty.util.internal.ThreadLocalRandom;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -26,6 +28,7 @@ import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.web3j.protocol.http.HttpService.JSON_MEDIA_TYPE;
@@ -48,6 +51,14 @@ public class WebSocketController {
     private static TokenService tokenService;
     private static IRaceParticipantService roomParticipantService;
     private static IRaceRoomService raceRoomService;
+
+    //测试需要
+    @Autowired
+    public void setUserService(ISysUserService userService) {
+        WebSocketController.userService = userService;
+    }
+
+    private static ISysUserService userService; // 测试需要
     private static final int questionNumber = 48;
     private static IRaceQuestionBankService questionBankService;
     private static RedisCache redisCache;
@@ -146,7 +157,7 @@ public class WebSocketController {
                     }
                     answerRightInfo.getPlayers().add(userId);
                 }
-                RaceRoom room = raceRoomService.selectRaceRoomByJudge(userId);
+                RaceRoom room = raceRoomService.selectRaceRoomByJudge(userId, 0);
                 if (room == null) {
                     room = new RaceRoom();
                     room.setRoomJudge(this.userId);
@@ -173,6 +184,71 @@ public class WebSocketController {
                 break;
             }
             case "invite_group": {
+//                for (Long userId : mes.getUsers()) {
+//                    if (!webSocketMap.containsKey(userId)) {
+//                        sendMessage(new SocketResponseMessage(601, "stop"));
+//                        return;
+//                    }
+//                }
+                RaceRoom room = raceRoomService.selectRaceRoomByJudge(userId, 1);
+                if (room == null) {
+                    room = new RaceRoom();
+                    room.setRoomJudge(this.userId);
+                    room.setRoomType(1L);
+                    raceRoomService.insertRaceRoom(room);
+                } else {
+                    roomParticipantService.deleteRaceParticipantByRoomId(room.getRoomId());
+                }
+
+                RaceParticipant participant = new RaceParticipant();
+                participant.setParticipantRoom(room.getRoomId());
+                List<Long> users = mes.getUsers();
+                HashMap<String, Object> data = new HashMap<>();
+                data.put("roomId", room.getRoomId());
+                data.put("a", new Long[]{users.get(0), users.get(1)});
+                participant.setParticipant(users.get(0));
+                participant.setParticipantGroup(1L);
+                roomParticipantService.insertRaceParticipant(participant);
+                participant.setParticipant(users.get(1));
+                roomParticipantService.insertRaceParticipant(participant);
+                data.put("b", new Long[]{users.get(2), users.get(3)});
+                participant.setParticipant(users.get(2));
+                participant.setParticipantGroup(2L);
+                roomParticipantService.insertRaceParticipant(participant);
+                participant.setParticipant(users.get(3));
+                roomParticipantService.insertRaceParticipant(participant);
+                SocketResponseMessage msg = new SocketResponseMessage(0, "join");
+                msg.setData(data);
+                for (Long userId : mes.getUsers()) {
+                    sendMessageByUserId(userId, msg);
+                }
+                sendMessage(msg);
+                redisCache.setCacheObject(room.getRoomId().toString(), new AnswerRightInfo((ArrayList<Long>) users));
+                break;
+            }
+            case "mute_player": {
+                SocketResponseMessage msg = new SocketResponseMessage(0, "mute");
+                ArrayList<Long> users = ((AnswerRightInfo) redisCache.getCacheObject(mes.getRoomId().toString()))
+                        .getPlayers();
+                msg.setData(false);
+                sendMessageByUserId(mes.getUsers().get(0), msg);
+                msg.setData(true);
+                if (users.size() != 0) {
+                    users.remove(mes.getUsers().get(0));
+                    for (Long userId : users) {
+                        sendMessageByUserId(userId, msg);
+                    }
+                }else{
+                    roomParticipantService.selectRaceUserListByRoom(mes.getRoomId()).forEach(user -> {
+                        try {
+                            sendMessageByUserId(user, msg);
+                        } catch (IOException | EncodeException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+                }
+                msg.setData("finish");
+                sendMessage(msg);
                 break;
             }
             case "get_question": {
@@ -226,6 +302,16 @@ public class WebSocketController {
                 sendMessage(new SocketResponseMessage(0, loginUsers));
                 break;
             }
+            //测试需要
+            case "get_test_players": {
+                ArrayList<SysUser> users = new ArrayList<>();
+                users.add(userService.selectUserById(100L));
+                users.add(userService.selectUserById(101L));
+                users.add(userService.selectUserById(102L));
+                users.add(userService.selectUserById(103L));
+                sendMessage(new SocketResponseMessage(0, users));
+                break;
+            }
             case "get_token": {
                 LoginUser user = userMap.get(userId);
                 ZegoUser zegoUser = new ZegoUser(user);
@@ -262,5 +348,7 @@ public class WebSocketController {
             webSocketMap.get(userId).sendMessage(message);
         }
     }
+
+
 
 }
