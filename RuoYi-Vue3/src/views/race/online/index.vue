@@ -87,7 +87,6 @@ export default {
       microphoneChoose: "",
       sendText: "",
       sharing: false,
-      ws: undefined,
       userInfo: {
         judge: "",
         player1: "",
@@ -95,7 +94,8 @@ export default {
       },
       keyStart: false,
       questionIdx: 0,
-      playIdx: 1
+      playIdx: 1,
+      sendObject: undefined,
     }
   },
   methods: {
@@ -132,7 +132,7 @@ export default {
     muteMicrophone(state) {
       let res = this.engine.mutePublishStreamAudio(this.stream, state)
       if (res) {
-        this.$message.success(state !== true ? "抢答成功，解禁麦克风，开始回答" : "开始抢答，关闭麦克风")
+        this.$message.success(state !== true ? "解禁麦克风" : "关闭麦克风")
       }
     },
     audioChange(val) {
@@ -161,12 +161,11 @@ export default {
       console.log(content)
     },
     startCompetition() {
-      let data = {
+      this.sendObject({
         "index": this.questionIdx,
         "roomId": this.config.roomId,
         "handler": "get_question"
-      }
-      this.ws.send(JSON.stringify(data))
+      })
       this.startState = true
     },
     nextQuestion() {
@@ -177,11 +176,10 @@ export default {
       }
     },
     endGame() {
-      let data = {
+      this.sendObject({
         "handler": "end_game",
         "roomId": this.config.roomId
-      }
-      this.ws.send(JSON.stringify(data))
+      })
       getRoom(this.config.roomId).then(res => {
         res.data.status = 0
         updateRoom(res.data).then(res => {
@@ -193,7 +191,9 @@ export default {
   },
   created() {
     let zg = useZgEngineStore()
-    this.ws = useWebSocket().ws
+    let wsStore = useWebSocket()
+    let ws = wsStore.ws
+    this.sendObject = wsStore.sendObject
     this.engine = zg.engine
     this.config = zg._config
     this.engine.setLogConfig({logLevel: 'error', remoteLogLevel: 'error', logUrl: ""})
@@ -232,7 +232,7 @@ export default {
     this.engine.on('IMRecvBroadcastMessage', (roomId, charData) => {
       this.createMsg(charData)
     })
-    this.ws.onmessage = (e) => {
+    wsStore.ws.onmessage = (e) => {
       let mes = JSON.parse(e.data)
       switch (mes.msg) {
         case "get" : {
@@ -295,12 +295,11 @@ export default {
     }
     window.onkeydown = (e) => {
       if (e.key === "Enter" && this.keyStart && this.config.roleId !== 1) {
-        let data = {
+        this.sendObject({
           "index": this.questionIdx,
           "roomId": this.config.roomId,
           "handler": "answer_right"
-        }
-        this.ws.send(JSON.stringify(data))
+        })
         this.keyStart = false
       }
     }

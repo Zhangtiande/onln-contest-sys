@@ -11,7 +11,8 @@ export const useZgEngineStore = defineStore('ZgEngine', () => {
         videoType: "VP8",
         roomId: 0,
         roleId: 0,
-        streamID: (Date.now() & 20010327).toString()
+        streamID: (Date.now() & 20010327).toString(),
+        group: false
     }
     const engine = new ZegoExpressEngine(_config.appid, _config.dispatchServer);
 
