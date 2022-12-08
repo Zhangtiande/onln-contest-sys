@@ -1,9 +1,12 @@
 <template>
   <div class="button-group">
-    <el-button ref="solo" :loading="login_flag" class="button1" type="primary" @click="inviteSolo">
+    <el-button ref="solo" :loading="login_flag" class="button1" type="primary"
+               @click="invite_solo_visibility = !invite_solo_visibility">
       单人pk(裁判)
     </el-button>
-    <el-button ref="group" :loading="login_flag" class="button2" type="primary" @click="invite_group">组队pk(裁判)
+    <el-button ref="group" :loading="login_flag" class="button2" type="primary"
+               @click="invite_group_visibility = !invite_group_visibility">
+      组队pk(裁判)
     </el-button>
   </div>
   <el-dialog v-model="invite_solo_visibility" title="单人pk邀请">
@@ -34,7 +37,7 @@
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="invite_solo_visibility = false">取消</el-button>
-        <el-button type="primary" @click="solo">
+        <el-button type="primary" @click="invite_solo">
           邀请
         </el-button>
       </span>
@@ -91,7 +94,7 @@
     <template #footer>
       <span class="dialog-footer">
         <el-button @click="invite_group_visibility = false">取消</el-button>
-        <el-button type="primary" @click="group">
+        <el-button type="primary" @click="invite_group">
           邀请
         </el-button>
       </span>
@@ -99,179 +102,185 @@
   </el-dialog>
 </template>
 
-<script>
+<script setup>
 import {useWebSocket} from "@/store/modules/webSocket";
-import router from "@/router";
 import {useZgEngineStore} from "@/store/modules/ZgEngine";
+import {getCurrentInstance, onMounted, ref, watch} from "vue";
+import {reactive} from "@vue/reactivity";
+import router from "@/router";
 
-let onlineUsers = []
+const {proxy} = getCurrentInstance();
+const wsStore = useWebSocket()
+const zegoStore = useZgEngineStore()
 
-export default {
-  name: "index",
-  data() {
-    const checkExist = (rule, value, callback) => {
-      if (this.solo_form.first === this.solo_form.second) {
-        return callback(new Error('玩家不能相同'))
+const login_flag = ref(false)
+let invite_solo_visibility = ref(false)
+let invite_group_visibility = ref(false)
+const solo_form = reactive({first: "", second: ""})
+const group_form = reactive({A1: "", A2: "", B1: "", B2: ""})
+const users = reactive([])
+const onlineUsers = reactive([])
+
+const checkExist = (rule, value, callback) => {
+  if (solo_form.first === solo_form.second) {
+    return callback(new Error('玩家不能相同'))
+  }
+  if (!onlineUsers.some(item => item.nickName === value)) {
+    return callback(new Error("没有该玩家或该玩家不在线"))
+  }
+  return callback()
+}
+const groupCheckExist = (rule, value, callback) => {
+  if (users.some((val, index, arr) => arr.indexOf(val) !== index)) {
+    return new Error("玩家不能相同")
+  }
+  if (!onlineUsers.some(item => item.nickName === value)) {
+    return callback(new Error("没有该玩家或该玩家不在线"))
+  }
+  return callback()
+}
+const rules = {
+  first: [
+    {validator: checkExist, trigger: 'blur'}
+  ],
+  second: [
+    {validator: checkExist, trigger: 'blur'}
+  ]
+}
+const groupRules = {
+  A1: [
+    {validator: groupCheckExist, trigger: 'blur'}
+  ],
+  A2: [
+    {validator: groupCheckExist, trigger: 'blur'}
+  ],
+  B1: [
+    {validator: groupCheckExist, trigger: 'blur'}
+  ],
+  B2: [
+    {validator: groupCheckExist, trigger: 'blur'}
+  ]
+}
+
+onMounted(() => {
+  zegoStore.engine.setLogConfig({logLevel: 'error', remoteLogLevel: 'error', logUrl: ""})
+  zegoStore.engine.setDebugVerbose(false)
+  zegoStore.checkBrowser()
+  wsStore.ws.onopen = (_) => {
+    wsStore.sendObject({"handler": "get_player"})
+    wsStore.sendObject({"handler": "get_token"})
+  }
+  wsStore.ws.onmessage = (e) => {
+    let mes = JSON.parse(e.data)
+    if (mes.code !== 0) {
+      switch (mes.code) {
+        case 601:
+          proxy.$notify.error("用户不在线")
       }
-      if (!onlineUsers.some(item => item.nickName === value)) {
-        return callback(new Error("没有该玩家或该玩家不在线"))
-      }
-      return callback()
-    };
-    const groupCheckExist = (rule, value, callback) => {
-      if (this.users.some((val, index, arr) => arr.indexOf(val) !== index)) {
-        return new Error("玩家不能相同")
-      }
-      if (!onlineUsers.some(item => item.nickName === value)) {
-        return callback(new Error("没有该玩家或该玩家不在线"))
-      }
-      return callback()
-    };
-    return {
-      login_flag: false,
-      wsStore: undefined,
-      invite_solo_visibility: false,
-      invite_group_visibility: false,
-      solo_form: {
-        first: "",
-        second: ""
-      },
-      group_form: {
-        A1: "",
-        A2: "",
-        B1: "",
-        B2: ""
-      },
-      zg: undefined,
-      rules: {
-        first: [
-          {validator: checkExist, trigger: 'blur'}
-        ],
-        second: [
-          {validator: checkExist, trigger: 'blur'}
-        ]
-      },
-      groupRules: {
-        A1: [
-          {validator: groupCheckExist, trigger: 'blur'}
-        ],
-        A2: [
-          {validator: groupCheckExist, trigger: 'blur'}
-        ],
-        B1: [
-          {validator: groupCheckExist, trigger: 'blur'}
-        ],
-        B2: [
-          {validator: groupCheckExist, trigger: 'blur'}
-        ]
-      },
-      users: [],
-      sendObject: undefined
     }
-  },
-  created() {
-    this.zg = useZgEngineStore()
-    this.zg.engine.setLogConfig({logLevel: 'error', remoteLogLevel: 'error', logUrl: ""})
-    this.zg.engine.setDebugVerbose(false)
-    this.zg.checkBrowser()
-    let wsStore = useWebSocket()
-    this.sendObject = wsStore.sendObject
-    wsStore.ws.onopen = (_) => {
-      wsStore.sendObject({"handler": "get_player"})
-      wsStore.sendObject({"handler": "get_token"})
-    }
-    wsStore.ws.onmessage = (e) => {
-      let mes = JSON.parse(e.data)
-      if (mes.code !== 0) {
-        switch (mes.code) {
-          case 601:
-            this.$notify.error("用户不在线")
-        }
-      }
-      if (mes.msg === "join_solo" || mes.msg === "join_group") {
-        this.zg._config.roomId = mes.data.roomId
-        wsStore.user = onlineUsers.filter(item => mes.data.users.includes(item.userId))
-        if (mes.msg === "join_solo") {
-          router.push({path: "/race/online_solo"})
-        } else {
-          router.push({path: "/race/online_group"})
-        }
-      } else if (mes.msg === "info") {
-        this.zg.init(mes.data).then((res) => {
-          if (res === true) {
-            this.$notify.success({
-              title: "登录成功",
-              message: "您可以等待别人邀请或者作为裁判邀请他人",
-              showClose: false
-            })
-            this.login_flag = false
-          }
-        })
+    if (mes.msg === "join_solo" || mes.msg === "join_group") {
+      zegoStore.config.roomId = mes.data.roomId
+      wsStore.user = onlineUsers.filter(item => mes.data.users.includes(item.userId))
+      if (mes.msg === "join_solo") {
+        router.push({path: "/race/online_solo"})
       } else {
-        onlineUsers = []
-        if (mes.data[0].nickName !== "") {
-          onlineUsers = mes.data
-        } else {
-          this.zg._config.onlineUsers = []
-          for (let user of mes.data) {
-            onlineUsers.push(user.user)
-          }
+        router.push({path: "/race/online_group"})
+      }
+    } else if (mes.msg === "info") {
+      zegoStore.initEngine(mes.data).then((res) => {
+        if (res === true) {
+          proxy.$notify.success({
+            title: "登录成功",
+            message: "您可以等待别人邀请或者作为裁判邀请他人",
+            showClose: false
+          })
+          login_flag.value = false
+        }
+      })
+    } else {
+      onlineUsers.length = 0
+      if (mes.data[0].nickName !== "") {
+        onlineUsers.push(...mes.data)
+      } else {
+        for (let user of mes.data) {
+          onlineUsers.push(user.user)
         }
       }
     }
-  },
-  methods: {
-    solo() {
-      this.$refs.form.validate((res) => {
-        if (!res)
-          return
-        this.sendObject({
-          "handler": "invite_solo",
-          "users": this.users
-        })
-        this.invite_solo_visibility = false
-        this.zg._config.roleId = 1
-      })
-    },
-    group() {
-      this.$refs.form2.validate((res) => {
-        if (!res)
-          return
-        this.sendObject({
-          "handler": "invite_group",
-          "users": this.users
-        })
-        this.invite_group_visibility = false
-        this.zg._config.roleId = 1
-      })
-    },
-    querySearch(queryString, cb) {
-      const results = queryString
-          ? onlineUsers.filter(this.createFilter(queryString))
-          : onlineUsers
-      cb(results)
-    },
-    createFilter(queryString) {
-      return (restaurant) => {
-        return (
-            restaurant.nickName.indexOf(queryString) === 0
-        )
-      }
-    },
-    handleSelect(idx, item) {
-      this.users[idx] = item.userId
-    },
-    inviteSolo() {
-      this.sendObject({"handler": "get_player"})
-      this.invite_solo_visibility = true
-    },
-    invite_group() {
-      this.sendObject({"handler": "get_test_players"})
-      this.invite_group_visibility = true
-    },
+  }
+})
+
+watch(invite_group_visibility, (val) => {
+  if (val) {
+    users.length = 0
+    group_form.A1 = ""
+    group_form.A2 = ""
+    group_form.B1 = ""
+    group_form.B2 = ""
+    get_player("get_test_players")
+  }
+})
+
+watch(invite_solo_visibility, (val) => {
+  if (val) {
+    users.length = 0
+    solo_form.first = ""
+    solo_form.second = ""
+    get_player("get_player")
+  }
+})
+
+function invite_solo() {
+  proxy.$refs.form.validate((res) => {
+    if (!res)
+      return
+    wsStore.sendObject({
+      "handler": "invite_solo",
+      "users": users
+    })
+    invite_solo_visibility.value = false
+    zegoStore.config.roleId = 1
+  })
+}
+
+function invite_group() {
+  proxy.$refs.form2.validate((res) => {
+    if (!res)
+      return
+    wsStore.sendObject({
+      "handler": "invite_group",
+      "users": users
+    })
+    invite_group_visibility.value = false
+    zegoStore.config.roleId = 1
+  })
+}
+
+function querySearch(queryString, cb) {
+  const results = queryString
+      ? onlineUsers.filter(createFilter(queryString))
+      : onlineUsers
+  cb(results)
+}
+
+function createFilter(queryString) {
+  return (restaurant) => {
+    return (
+        restaurant.nickName.indexOf(queryString) === 0
+    )
   }
 }
+
+function handleSelect(idx, item) {
+  users[idx] = item.userId
+}
+
+function get_player(param) {
+  wsStore.sendObject({"handler": param})
+}
+
 </script>
+
 
 <style scoped>
 .button-group {
