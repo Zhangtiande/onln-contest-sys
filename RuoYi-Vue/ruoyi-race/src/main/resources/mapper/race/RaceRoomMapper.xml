@@ -30,7 +30,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where room_id = #{roomId}
     </select>
 
-    <select id="selectRaceRoomByJudge" parameterType="Long" resultMap="RaceRoomResult">
+    <select id="selectRaceRoomByJudge" resultMap="RaceRoomResult">
         <include refid="selectRaceRoomVo"/>
         where room_judge = #{roomJudge} and status = 1 and room_type = #{roomType}
     </select>

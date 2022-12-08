@@ -1,6 +1,7 @@
 import {defineConfig, loadEnv} from 'vite'
 import path from 'path'
 import createVitePlugins from './vite/plugins'
+import {devtools} from "vue";
 
 // https://vitejs.dev/config/
 export default defineConfig(({mode, command}) => {
@@ -34,12 +35,7 @@ export default defineConfig(({mode, command}) => {
                     target: 'http://159.138.0.68:4040',
                     changeOrigin: true,
                     rewrite: (p) => p.replace(/^\/dev-api/, '')
-                },
-                '/token': {
-                    target: 'https://experience.zegonetwork.com:16443',	//实际请求地址
-                    changeOrigin: true,
-                    rewrite: (path) => path.replace(/^\/token/, '')
-                },
+                }
             }
         },
         //fix:error:stdin>:7356:1: warning: "@charset" must be the first rule in the file
@@ -58,6 +54,6 @@ export default defineConfig(({mode, command}) => {
                     }
                 ]
             }
-        }
+        },
     }
 })

@@ -46,7 +46,7 @@
   <div id="videoBox">
     <div id="judge">
       <span>{{ this.userInfo.judge }}</span>
-      <video ref="judge_video" autoplay controls muted playsinline></video>
+      <video ref="judge" autoplay controls muted playsinline></video>
     </div>
     <div id="player">
       <div style="display: flex; flex-direction: column;align-items: center;">
@@ -81,12 +81,9 @@ export default {
       playStreamList: [],
       startState: false,
       endState: false,
-      microphoneState: true,
       audioChoose: "",
       videoChoose: "",
       microphoneChoose: "",
-      sendText: "",
-      sharing: false,
       userInfo: {
         judge: "",
         player1: "",
@@ -94,7 +91,6 @@ export default {
       },
       keyStart: false,
       questionIdx: 0,
-      playIdx: 1,
       sendObject: undefined,
     }
   },
@@ -106,14 +102,13 @@ export default {
           this.engine.createStream().then((res) => {
             this.stream = res
             if (this.config.roleId === 1) {
-              this.$refs.judge_video.srcObject = res
+              this.$refs.judge.srcObject = res
               this.engine.startPublishingStream(this.config.streamID, res, {extraInfo: "judge"})
-
             } else {
-              this.$refs.player1.srcObject = res
-              this.engine.startPublishingStream(this.config.streamID, res)
+              let idx = this.config.users.findIndex(item => item.userId === this.config.userId)
+              this.$refs["player" + (idx + 1)].srcObject = res
+              this.engine.startPublishingStream(this.config.streamID, res, {extraInfo: "player" + (idx + 1)})
             }
-
           }).catch(err => {
             this.$message.error(err.msg)
           })
@@ -146,19 +141,6 @@ export default {
         let option = {title: "切换摄像头", showClose: false, message: res.extendedData}
         res.errorCode === 0 ? this.$notify.success(option) : this.$notify.error(option)
       })
-    },
-    send() {
-      if (!this.sendText) {
-        return;
-      }
-      this.engine.sendBroadcastMessage(this.roomId.toString(), this.sendText).then(() => {
-        this.sendText = ""
-      }).catch(() => {
-        this.$message.warning("消息发送失败")
-      })
-    },
-    createMsg(content) {
-      console.log(content)
     },
     startCompetition() {
       this.sendObject({
@@ -205,33 +187,13 @@ export default {
         })
         for (let streamElement of stream) {
           this.engine.startPlayingStream(streamElement.streamID).then(res => {
-            if (streamElement.extraInfo === "judge") {
-              this.$refs.judge_video.srcObject = res
-              this.userInfo.judge = streamElement.user.userName
-            } else {
-              if (this.config.roleId === 1) {
-                if (this.playIdx === 2) {
-                  this.$refs.player2.srcObject = res
-                  this.userInfo.player2 = streamElement.user.userName
-                } else {
-                  this.$refs.player1.srcObject = res
-                  this.userInfo.player1 = streamElement.user.userName
-                  this.playIdx++
-                }
-              } else {
-                this.$refs.player2.srcObject = res
-                this.userInfo.player2 = streamElement.user.userName
-              }
-
-            }
+            this.$refs[streamElement.extraInfo].srcObject = res
+            this.userInfo[streamElement.extraInfo] = streamElement.user.userName
+            this.playStreamList.push(streamElement)
           })
-          this.playStreamList.push(streamElement)
         }
       }
     });
-    this.engine.on('IMRecvBroadcastMessage', (roomId, charData) => {
-      this.createMsg(charData)
-    })
     wsStore.ws.onmessage = (e) => {
       let mes = JSON.parse(e.data)
       switch (mes.msg) {
@@ -331,6 +293,9 @@ export default {
       duration: 10000,
       showClose: true
     })
+  },
+  beforeDestroy() {
+    this.engine && this.engine.leaveRoom()
   }
 }
 </script>

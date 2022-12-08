@@ -1,8 +1,10 @@
-import { createWebHistory, createRouter } from 'vue-router'
+import {createWebHistory, createRouter} from 'vue-router'
 /* Layout */
 import Layout from '@/layout'
 import race from "@/views/race";
-import online from "@/views/race/online/index.vue";
+import online from "@/views/race/online_solo/index.vue";
+import online_group from "@/views/race/online_group/index.vue";
+import online_solo from "@/views/race/online_solo/index.vue";
 
 /**
  * Note: 路由配置项
@@ -81,19 +83,23 @@ export const constantRoutes = [
       {
         path: 'profile',
         component: () => import('@/views/system/user/profile/index'),
-        name: 'Profile',
-        meta: { title: '个人中心', icon: 'user' }
+          name: 'Profile',
+          meta: {title: '个人中心', icon: 'user'}
       }
     ]
   },
-  {
-    path: '/race',
-    component: race,
-  },
-  {
-    path: "/race/online",
-    component: online,
-  }
+    {
+        path: '/race',
+        component: race,
+    },
+    {
+        path: "/race/online_solo",
+        component: online_solo,
+    },
+    {
+        path: "/race/online_group",
+        component: online_group,
+    }
 ]
 
 // 动态路由，基于用户权限动态去加载

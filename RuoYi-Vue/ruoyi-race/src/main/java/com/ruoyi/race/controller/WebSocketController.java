@@ -28,7 +28,6 @@ import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.web3j.protocol.http.HttpService.JSON_MEDIA_TYPE;
@@ -44,22 +43,15 @@ import static org.web3j.protocol.http.HttpService.JSON_MEDIA_TYPE;
 @Component
 public class WebSocketController {
     private final static Logger logger = LogManager.getLogger(WebSocketController.class);
+    private static final OkHttpClient httpClient = new OkHttpClient();
+    private static final int questionNumber = 48;
     public static ConcurrentHashMap<Long, WebSocketController> webSocketMap = new ConcurrentHashMap<>();
     public static ConcurrentHashMap<Long, LoginUser> userMap = new ConcurrentHashMap<>();
-    private static final OkHttpClient httpClient = new OkHttpClient();
     private static int onlineCount = 0;
     private static TokenService tokenService;
     private static IRaceParticipantService roomParticipantService;
     private static IRaceRoomService raceRoomService;
-
-    //测试需要
-    @Autowired
-    public void setUserService(ISysUserService userService) {
-        WebSocketController.userService = userService;
-    }
-
     private static ISysUserService userService; // 测试需要
-    private static final int questionNumber = 48;
     private static IRaceQuestionBankService questionBankService;
     private static RedisCache redisCache;
     private Session session;
@@ -75,6 +67,12 @@ public class WebSocketController {
 
     public static synchronized void subOnlineCount() {
         WebSocketController.onlineCount--;
+    }
+
+    //测试需要
+    @Autowired
+    public void setUserService(ISysUserService userService) {
+        WebSocketController.userService = userService;
     }
 
     @Autowired
@@ -170,9 +168,10 @@ public class WebSocketController {
                 RaceParticipant participant = new RaceParticipant();
                 participant.setParticipantRoom(room.getRoomId());
 
-                SocketResponseMessage msg = new SocketResponseMessage(0, "join");
-                HashMap<String, Long> data = new HashMap<>();
+                SocketResponseMessage msg = new SocketResponseMessage(0, "join_solo");
+                HashMap<String, Object> data = new HashMap<>();
                 data.put("roomId", room.getRoomId());
+                data.put("users", mes.getUsers());
                 msg.setData(data);
                 for (Long userId : mes.getUsers()) {
                     participant.setParticipant(userId);
@@ -200,36 +199,22 @@ public class WebSocketController {
                     roomParticipantService.deleteRaceParticipantByRoomId(room.getRoomId());
                 }
 
-                RaceParticipant participant = new RaceParticipant();
-                participant.setParticipantRoom(room.getRoomId());
-                List<Long> users = mes.getUsers();
                 HashMap<String, Object> data = new HashMap<>();
                 data.put("roomId", room.getRoomId());
-                data.put("a", new Long[]{users.get(0), users.get(1)});
-                participant.setParticipant(users.get(0));
-                participant.setParticipantGroup(1L);
-                roomParticipantService.insertRaceParticipant(participant);
-                participant.setParticipant(users.get(1));
-                roomParticipantService.insertRaceParticipant(participant);
-                data.put("b", new Long[]{users.get(2), users.get(3)});
-                participant.setParticipant(users.get(2));
-                participant.setParticipantGroup(2L);
-                roomParticipantService.insertRaceParticipant(participant);
-                participant.setParticipant(users.get(3));
-                roomParticipantService.insertRaceParticipant(participant);
-                SocketResponseMessage msg = new SocketResponseMessage(0, "join");
+                data.put("users", mes.getUsers());
+                roomParticipantService.insertRaceUsers(mes.getUsers(), room.getRoomId());
+                SocketResponseMessage msg = new SocketResponseMessage(0, "join_group");
                 msg.setData(data);
                 for (Long userId : mes.getUsers()) {
                     sendMessageByUserId(userId, msg);
                 }
                 sendMessage(msg);
-                redisCache.setCacheObject(room.getRoomId().toString(), new AnswerRightInfo((ArrayList<Long>) users));
+                redisCache.setCacheObject(room.getRoomId().toString(), new AnswerRightInfo((ArrayList<Long>) mes.getUsers()));
                 break;
             }
             case "mute_player": {
                 SocketResponseMessage msg = new SocketResponseMessage(0, "mute");
-                ArrayList<Long> users = ((AnswerRightInfo) redisCache.getCacheObject(mes.getRoomId().toString()))
-                        .getPlayers();
+                ArrayList<Long> users = ((AnswerRightInfo) redisCache.getCacheObject(mes.getRoomId().toString())).getPlayers();
                 msg.setData(false);
                 sendMessageByUserId(mes.getUsers().get(0), msg);
                 msg.setData(true);
@@ -238,7 +223,7 @@ public class WebSocketController {
                     for (Long userId : users) {
                         sendMessageByUserId(userId, msg);
                     }
-                }else{
+                } else {
                     roomParticipantService.selectRaceUserListByRoom(mes.getRoomId()).forEach(user -> {
                         try {
                             sendMessageByUserId(user, msg);
@@ -348,7 +333,6 @@ public class WebSocketController {
             webSocketMap.get(userId).sendMessage(message);
         }
     }
-
 
 
 }

@@ -111,4 +111,27 @@ public class RaceParticipantServiceImpl implements IRaceParticipantService
     public List<Long> selectRaceUserListByRoom(Long roomId) {
         return raceParticipantMapper.selectRaceUserListByRoom(roomId);
     }
+
+    /**
+     * 插入用户
+     *
+     * @param users 用户
+     */
+    @Override
+    public void insertRaceUsers(List<Long> users, Long roomId) {
+        RaceParticipant participant = new RaceParticipant();
+        participant.setParticipantRoom(roomId);
+        participant.setParticipant(users.get(0));
+        participant.setParticipantGroup(1L);
+        raceParticipantMapper.insertRaceParticipant(participant);
+        participant.setParticipant(users.get(1));
+        participant.setParticipantGroup(1L);
+        raceParticipantMapper.insertRaceParticipant(participant);
+        participant.setParticipant(users.get(2));
+        participant.setParticipantGroup(2L);
+        raceParticipantMapper.insertRaceParticipant(participant);
+        participant.setParticipant(users.get(3));
+        participant.setParticipantGroup(2L);
+        raceParticipantMapper.insertRaceParticipant(participant);
+    }
 }

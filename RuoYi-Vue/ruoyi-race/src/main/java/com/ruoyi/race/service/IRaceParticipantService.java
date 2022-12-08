@@ -76,4 +76,7 @@ public interface IRaceParticipantService
      * @return int
      */
     List<Long> selectRaceUserListByRoom(Long roomId);
+
+
+    void insertRaceUsers(List<Long> users, Long roomId);
 }

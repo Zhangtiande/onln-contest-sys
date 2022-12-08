@@ -145,29 +145,23 @@ export default {
       zg: undefined,
       rules: {
         first: [
-          {required: true, message: '请输入第一个玩家', trigger: 'blur'},
           {validator: checkExist, trigger: 'blur'}
         ],
         second: [
-          {required: true, message: '请输入第二个玩家', trigger: 'blur'},
           {validator: checkExist, trigger: 'blur'}
         ]
       },
       groupRules: {
         A1: [
-          {required: true, message: '请输入A队1号', trigger: 'blur'},
           {validator: groupCheckExist, trigger: 'blur'}
         ],
         A2: [
-          {required: true, message: '请输入A队2号', trigger: 'blur'},
           {validator: groupCheckExist, trigger: 'blur'}
         ],
         B1: [
-          {required: true, message: '请输入B队1号', trigger: 'blur'},
           {validator: groupCheckExist, trigger: 'blur'}
         ],
         B2: [
-          {required: true, message: '请输入B队2号', trigger: 'blur'},
           {validator: groupCheckExist, trigger: 'blur'}
         ]
       },
@@ -194,14 +188,14 @@ export default {
             this.$notify.error("用户不在线")
         }
       }
-      if (mes.msg === "join") {
+      if (mes.msg === "join_solo" || mes.msg === "join_group") {
         this.zg._config.roomId = mes.data.roomId
-        if (mes.data.a !== null) {
-          this.zg._config.a = mes.data.a
-          this.zg._config.b = mes.data.b
-          this.zg._config.group = true
+        wsStore.user = onlineUsers.filter(item => mes.data.users.includes(item.userId))
+        if (mes.msg === "join_solo") {
+          router.push({path: "/race/online_solo"})
+        } else {
+          router.push({path: "/race/online_group"})
         }
-        router.push({path: "/race/online"})
       } else if (mes.msg === "info") {
         this.zg.init(mes.data).then((res) => {
           if (res === true) {
@@ -216,10 +210,9 @@ export default {
       } else {
         onlineUsers = []
         if (mes.data[0].nickName !== "") {
-          mes.data.forEach(item => {
-            onlineUsers.push(item)
-          })
+          onlineUsers = mes.data
         } else {
+          this.zg._config.onlineUsers = []
           for (let user of mes.data) {
             onlineUsers.push(user.user)
           }

@@ -2,17 +2,16 @@ import {defineStore} from 'pinia'
 import '/src/ZegoExpressWebRTC-1.0.0'
 
 export const useZgEngineStore = defineStore('ZgEngine', () => {
-    const baseApi = "https://experience.zegonetwork.com"
-    const _config = {
+    let _config = {
         appid: 1234567,
         deviceType: "",
         anType: 0,
-        dispatchServer: baseApi + ":15443/dispatch/connection",
+        dispatchServer: "https://experience.zegonetwork.com:15443/dispatch/connection",
         videoType: "VP8",
         roomId: 0,
         roleId: 0,
         streamID: (Date.now() & 20010327).toString(),
-        group: false
+        users: []
     }
     const engine = new ZegoExpressEngine(_config.appid, _config.dispatchServer);
 
@@ -54,6 +53,7 @@ export const useZgEngineStore = defineStore('ZgEngine', () => {
     }
 
     async function init(config) {
+        _config.userId = parseInt(config.user_id.split("fcayj")[1])
         _config.token = config.token
         _config.deviceId = config.device_id
         _config.nickName = config.user_name
