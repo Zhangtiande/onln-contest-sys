@@ -98,7 +98,7 @@ const roomInfo = reactive({
   videoDevice: [],
   outputDevice: [],
   startState: false,
-  endState: false,
+  endState: true,
   audioChoose: "",
   videoChoose: "",
   microphoneChoose: "",
@@ -112,7 +112,7 @@ const isJudge = computed(() => zegoStore.config.roleId === 1)
 
 watch(() => roomInfo.questionIdx, (idx) => {
   if (idx >= 20)
-    roomInfo.endState = true
+    roomInfo.endState = false
 })
 
 onMounted(() => {
@@ -142,7 +142,7 @@ onMounted(() => {
     let mes = JSON.parse(e.data)
     switch (mes.msg) {
       case "mute": {
-        if (isJudge) {
+        if (!isJudge) {
           muteMicrophone(mes.data)
           mes.data || setTimeout(() => {
             proxy.$notify.warning({
@@ -156,13 +156,13 @@ onMounted(() => {
               })
             }, 3000)
           }, 7000)
+          roomInfo.questionIdx++
         }
-        roomInfo.questionIdx++
         break;
       }
       case "question" : {
         isJudge || muteMicrophone(true)
-        let title = (roomInfo.questionIdx + 1) + "." + mes.data.question
+        let title = roomInfo.questionIdx + "." + mes.data.question
         let content = "A." + mes.data.a + '\n' + "B." + mes.data.b + '\n' + "C." + mes.data.c + '\n' + "D." + mes.data.d
         proxy.$notify.info({
           title: title,

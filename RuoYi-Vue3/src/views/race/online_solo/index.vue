@@ -78,7 +78,7 @@ const roomInfo = reactive({
   videoDevice: [],
   outputDevice: [],
   startState: false,
-  endState: false,
+  endState: true,
   audioChoose: "",
   videoChoose: "",
   microphoneChoose: "",
@@ -93,7 +93,7 @@ const isJudge = computed(() => zegoStore.config.roleId === 1)
 
 watch(() => roomInfo.questionIdx, (idx) => {
   if (idx >= 10)
-    roomInfo.endState = true
+    roomInfo.endState = false
 })
 
 onMounted(() => {
@@ -171,7 +171,7 @@ onMounted(() => {
     }
     window.onkeydown = (e) => {
       if (e.key === "Enter" && roomInfo.keyStart && !isJudge) {
-        this.sendObject({
+        wsStore.sendObject({
           "index": roomInfo.questionIdx,
           "roomId": zegoStore.config.roomId,
           "handler": "answer_right"
