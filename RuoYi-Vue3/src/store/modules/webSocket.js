@@ -8,9 +8,6 @@ export const useWebSocket = defineStore('WebSocket', {
         ws: new WebSocket("wss://www.923yyds.top:4041/wss/" + getToken()),
         user: []
     }),
-    getters: {
-        getUsers: (state) => state.user,
-    },
     actions: {
         sendObject(data) {
             this.ws.send(JSON.stringify(data))

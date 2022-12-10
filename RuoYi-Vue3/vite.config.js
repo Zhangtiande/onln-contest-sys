@@ -35,6 +35,11 @@ export default defineConfig(({mode, command}) => {
                     target: 'http://159.138.0.68:4040',
                     changeOrigin: true,
                     rewrite: (p) => p.replace(/^\/dev-api/, '')
+                },
+                '/prod-api': {
+                    target: 'https://www.923yyds.top/prod-api',
+                    changeOrigin: true,
+                    rewrite: (p) => p.replace(/^\/prod-api/, '')
                 }
             }
         },

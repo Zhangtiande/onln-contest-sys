@@ -2,39 +2,39 @@
   <div>
     <el-row style="margin-top:2%; justify-content: center">
       <el-col :span="4">
-        <el-select v-model="audioChoose" placeholder="麦克风" @change="audioChange">
+        <el-select v-model="roomInfo.audioChoose" placeholder="麦克风" @change="audioChange">
           <el-option
-              v-for="item in audioDevice"
+              v-for="item in roomInfo.audioDevice"
               :key="item.value"
               :label="item.label"
               :value="item.value"></el-option>
         </el-select>
       </el-col>
       <el-col :span="4">
-        <el-select v-model="videoChoose" placeholder="视频设备" @change="videoChange">
+        <el-select v-model="roomInfo.videoChoose" placeholder="视频设备" @change="videoChange">
           <el-option
-              v-for="item in videoDevice"
+              v-for="item in roomInfo.videoDevice"
               :key="item.value"
               :label="item.label"
               :value="item.value"></el-option>
         </el-select>
       </el-col>
       <el-col :span="4">
-        <el-select v-model="microphoneChoose" placeholder="扬声器">
+        <el-select v-model="roomInfo.microphoneChoose" placeholder="扬声器">
           <el-option
-              v-for="item in outputDevice"
+              v-for="item in roomInfo.outputDevice"
               :key="item.value"
               :label="item.label"
               :value="item.value"></el-option>
         </el-select>
       </el-col>
-      <el-col v-if="this.config.roleId === 1" :span="4"
+      <el-col v-if="isJudge" :span="4"
               style="display: flex;flex-direction: row;justify-content: space-between;">
-        <el-button :disabled="startState" type="success"
+        <el-button :disabled="roomInfo.startState" type="success"
                    @click="startCompetition">开始
         </el-button>
-        <el-badge :value="10-this.questionIdx" class="item" type="primary">
-          <el-button :disabled="endState" type="primary" @click="nextQuestion">下一题
+        <el-badge :value="10-roomInfo.questionIdx" class="item" type="primary">
+          <el-button :disabled="roomInfo.endState" type="primary" @click="startCompetition">下一题
           </el-button>
         </el-badge>
         <el-button type="danger" @click="endGame">结束比赛</el-button>
@@ -45,16 +45,16 @@
 
   <div id="videoBox">
     <div id="judge">
-      <span>{{ this.userInfo.judge }}</span>
+      <span>{{ userInfo.judge }}</span>
       <video ref="judge" autoplay controls muted playsinline></video>
     </div>
     <div id="player">
       <div style="display: flex; flex-direction: column;align-items: center;">
-        <span>{{ this.userInfo.player1 }}</span>
+        <span>{{ userInfo.player1 }}</span>
         <video ref="player1" autoplay controls muted playsinline></video>
       </div>
       <div style="display: flex; flex-direction: column;align-items: center;">
-        <span>{{ this.userInfo.player2 }}</span>
+        <span>{{ userInfo.player2 }}</span>
         <video ref="player2" autoplay controls muted playsinline></video>
       </div>
     </div>
@@ -62,243 +62,231 @@
 
 </template>
 
-<!--suppress JSUnusedLocalSymbols, JSUnresolvedFunction -->
-<script>
+<script setup>
 import {useZgEngineStore} from "@/store/modules/ZgEngine";
 import {useWebSocket} from "@/store/modules/webSocket";
 import {getRoom, updateRoom} from "@/api/race/room";
-// noinspection JSUnusedLocalSymbols
-export default {
-  name: "index",
-  data() {
-    return {
-      engine: null,
-      config: undefined,
-      stream: null,
-      audioDevice: [],
-      videoDevice: [],
-      outputDevice: [],
-      playStreamList: [],
-      startState: false,
-      endState: false,
-      audioChoose: "",
-      videoChoose: "",
-      microphoneChoose: "",
-      userInfo: {
-        judge: "",
-        player1: "",
-        player2: ""
-      },
-      keyStart: false,
-      questionIdx: 0,
-      sendObject: undefined,
-    }
-  },
-  methods: {
-    enterRoom() {
-      this.engine.enterRoom(this.config.roomId.toString(), this.config.roleId).then((res) => {
-        if (res.errorCode === 0) {
-          this.$message.success("进入房间成功！")
-          this.engine.createStream().then((res) => {
-            this.stream = res
-            if (this.config.roleId === 1) {
-              this.$refs.judge.srcObject = res
-              this.engine.startPublishingStream(this.config.streamID, res, {extraInfo: "judge"})
-            } else {
-              let idx = this.config.users.findIndex(item => item.userId === this.config.userId)
-              this.$refs["player" + (idx + 1)].srcObject = res
-              this.engine.startPublishingStream(this.config.streamID, res, {extraInfo: "player" + (idx + 1)})
-            }
-          }).catch(err => {
-            this.$message.error(err.msg)
-          })
-        } else {
-          this.$message.error(res.extendedData)
-        }
+import "@/ZegoExpressWebRTC-1.0.0"
+import {computed, getCurrentInstance, onBeforeUnmount, onMounted, watch} from "vue";
+import {reactive} from "@vue/reactivity";
+
+const {proxy} = getCurrentInstance();
+const zegoStore = useZgEngineStore();
+const wsStore = useWebSocket();
+const roomInfo = reactive({
+  audioDevice: [],
+  videoDevice: [],
+  outputDevice: [],
+  startState: false,
+  endState: true,
+  audioChoose: "",
+  videoChoose: "",
+  microphoneChoose: "",
+  questionIdx: 0,
+  stream: undefined,
+  playStreamList: [],
+  chooseUser: "",
+  keyStart: false,
+})
+const userInfo = reactive({judge: "", player1: "", player2: "",})
+const isJudge = computed(() => zegoStore.config.roleId === 1)
+
+watch(() => roomInfo.questionIdx, (idx) => {
+  if (idx >= 10)
+    roomInfo.endState = false
+})
+
+onMounted(() => {
+  zegoStore.engine.setLogConfig({logLevel: 'error', remoteLogLevel: 'error', logUrl: ""})
+  zegoStore.engine.setDebugVerbose(false)
+  zegoStore.engine.on('roomStreamUpdate', async (roomID, updateType, streamList, extendedData) => {
+    if (updateType === 'ADD') {
+      let stream = streamList.filter(v => {
+        return roomInfo.playStreamList.every(e => e.streamID !== v.streamID);
       })
-    },
-    leaveRoom() {
-      this.playStreamList.forEach((item) => {
-        this.engine.stopPlayingStream(item)
-      })
-      this.engine.stopPublishingStream(this.config.streamID)
-      this.engine.destroyStream(this.stream)
-    },
-    muteMicrophone(state) {
-      let res = this.engine.mutePublishStreamAudio(this.stream, state)
-      if (res) {
-        this.$message.success(state !== true ? "解禁麦克风" : "关闭麦克风")
-      }
-    },
-    audioChange(val) {
-      this.engine.useAudioDevice(this.stream, val).then((res) => {
-        let option = {title: "切换麦克风", showClose: false, message: res.extendedData}
-        res.errorCode === 0 ? this.$notify.success(option) : this.$notify.error(option)
-      })
-    },
-    videoChange(val) {
-      this.engine.useVideoDevice(this.stream, val).then((res) => {
-        let option = {title: "切换摄像头", showClose: false, message: res.extendedData}
-        res.errorCode === 0 ? this.$notify.success(option) : this.$notify.error(option)
-      })
-    },
-    startCompetition() {
-      this.sendObject({
-        "index": this.questionIdx,
-        "roomId": this.config.roomId,
-        "handler": "get_question"
-      })
-      this.startState = true
-    },
-    nextQuestion() {
-      this.questionIdx++
-      this.startCompetition()
-      if (this.questionIdx === 10) {
-        this.endState = true
-      }
-    },
-    endGame() {
-      this.sendObject({
-        "handler": "end_game",
-        "roomId": this.config.roomId
-      })
-      getRoom(this.config.roomId).then(res => {
-        res.data.status = 0
-        updateRoom(res.data).then(res => {
-          console.log(res)
-          this.leaveRoom()
+      for (let streamElement of stream) {
+        zegoStore.engine.startPlayingStream(streamElement.streamID).then(res => {
+          proxy.$refs[streamElement.extraInfo].srcObject = res
+          userInfo[streamElement.extraInfo] = streamElement.user.userName
+          roomInfo.playStreamList.push(streamElement)
         })
-      })
-    }
-  },
-  created() {
-    let zg = useZgEngineStore()
-    let wsStore = useWebSocket()
-    let ws = wsStore.ws
-    this.sendObject = wsStore.sendObject
-    this.engine = zg.engine
-    this.config = zg._config
-    this.engine.setLogConfig({logLevel: 'error', remoteLogLevel: 'error', logUrl: ""})
-    this.engine.setDebugVerbose(false)
-    this.engine.on('roomStreamUpdate', async (roomID, updateType, streamList, extendedData) => {
-      if (updateType === 'ADD') {
-        let stream = streamList.filter(v => {
-          return this.playStreamList.every(e => e.streamID !== v.streamID);
-        })
-        for (let streamElement of stream) {
-          this.engine.startPlayingStream(streamElement.streamID).then(res => {
-            this.$refs[streamElement.extraInfo].srcObject = res
-            this.userInfo[streamElement.extraInfo] = streamElement.user.userName
-            this.playStreamList.push(streamElement)
-          })
-        }
       }
-    });
-    wsStore.ws.onmessage = (e) => {
-      let mes = JSON.parse(e.data)
-      switch (mes.msg) {
-        case "get" : {
-          this.muteMicrophone(false)
+    }
+  });
+  wsStore.ws.onmessage = (e) => {
+    let mes = JSON.parse(e.data)
+    switch (mes.msg) {
+      case "get" : {
+        muteMicrophone(false)
+        setTimeout(() => {
+          proxy.$notify.warning({
+            title: "三秒后闭麦",
+            duration: 3000
+          })
           setTimeout(() => {
-            this.$notify.warning({
-              title: "三秒后闭麦",
+            proxy.$notify.warning({
+              title: "闭麦",
               duration: 3000
             })
-            setTimeout(() => {
-              this.$notify.warning({
-                title: "闭麦",
-                duration: 3000
-              })
-            }, 3000)
-          }, 7000)
-          this.questionIdx++
+          }, 3000)
+        }, 7000)
+        roomInfo.questionIdx++
           break;
         }
         case "lost": {
-          if (mes.data === this.questionIdx) {
-            this.$message.info("抢答失败，不开启麦克风")
-            this.muteMicrophone(true)
-            this.questionIdx++
+          if (mes.data === roomInfo.questionIdx) {
+            proxy.$message.info("抢答失败，不开启麦克风")
+            muteMicrophone(true)
+            roomInfo.questionIdx++
           }
           break;
         }
         case "question" : {
-          if (this.config.roleId !== 1) {
-            this.muteMicrophone(true)
-          }
-          console.log(mes)
-          let title = (this.questionIdx + 1) + "." + mes.data.question
+          isJudge || muteMicrophone(true)
+          let title = (roomInfo.questionIdx + 1) + "." + mes.data.question
           let content = "A." + mes.data.a + '\n' + "B." + mes.data.b + '\n' + "C." + mes.data.c + '\n' + "D." + mes.data.d
-          this.$notify.info({
+          proxy.$notify.info({
             title: title,
             message: content,
             duration: 0,
             showClose: true
           })
-          if (this.config.roleId === 1) {
-            this.$message.success({
-              message: "正确答案：" + mes.data.answer,
-              duration: 0,
-              showClose: true
-            })
-          }
-          this.keyStart = true
+          !isJudge || proxy.$message.success({
+            message: "正确答案：" + mes.data.answer,
+            duration: 0,
+            showClose: true
+          })
+          roomInfo.keyStart = true
           break;
         }
         case 'end_game': {
-          this.leaveRoom()
+          leaveRoom()
           break;
         }
         default: {
-          this.$notify.warning("发生异常，请查看控制台")
+          proxy.$notify.warning("发生异常，请查看控制台")
           console.log(mes)
         }
       }
     }
     window.onkeydown = (e) => {
-      if (e.key === "Enter" && this.keyStart && this.config.roleId !== 1) {
-        this.sendObject({
-          "index": this.questionIdx,
-          "roomId": this.config.roomId,
+      if (e.key === "Enter" && roomInfo.keyStart && !isJudge) {
+        wsStore.sendObject({
+          "index": roomInfo.questionIdx,
+          "roomId": zegoStore.config.roomId,
           "handler": "answer_right"
         })
-        this.keyStart = false
+        roomInfo.keyStart = false
       }
     }
-    // zg.checkBrowser()
-    zg.listDevices().then((res) => {
-      res.cameras.forEach((item) => {
-        this.videoDevice.push({value: item.deviceID, label: item.deviceName})
-      })
-      res.microphones.forEach((item) => {
-        this.audioDevice.push({value: item.deviceID, label: item.deviceName})
-      })
-      res.speakers.forEach((item) => {
-        this.outputDevice.push({value: item.deviceID, label: item.deviceName})
-      })
-      this.audioChoose = this.audioDevice[0]
-      this.videoChoose = this.videoDevice[0]
-      this.microphoneChoose = this.outputDevice[0]
-      this.enterRoom()
+  // zg.checkBrowser()
+  zegoStore.listDevices().then((res) => {
+    res.cameras.forEach((item) => {
+      roomInfo.videoDevice.push({value: item.deviceID, label: item.deviceName})
     })
-    if (this.config.roleId === 1) {
-      this.userInfo.judge = this.config.nickName
+    res.microphones.forEach((item) => {
+      roomInfo.audioDevice.push({value: item.deviceID, label: item.deviceName})
+    })
+    res.speakers.forEach((item) => {
+      roomInfo.outputDevice.push({value: item.deviceID, label: item.deviceName})
+    })
+    roomInfo.audioChoose = roomInfo.audioDevice[0]
+    roomInfo.videoChoose = roomInfo.videoDevice[0]
+    roomInfo.microphoneChoose = roomInfo.outputDevice[0]
+    enterRoom()
+  })
+  proxy.$notify.warning({
+    title: "注意事项",
+    message: "1.当题目显示后按回车键抢答。\n2.抢答失败将被闭麦，题目不会自动关闭，请手动关闭\n3.回答时间为10s，时间到将闭麦\n4.等待裁判计分并点击下一题\n" +
+        "5.十题后比赛结束，裁判宣判结果后可点击结束比赛按钮",
+    duration: 10000,
+    showClose: true
+  })
+})
+
+onBeforeUnmount(() => {
+  leaveRoom()
+})
+
+function enterRoom() {
+  zegoStore.engine.enterRoom(zegoStore.config.roomId.toString(), zegoStore.config.roleId).then((res) => {
+    if (res.errorCode === 0) {
+      proxy.$message.success("进入房间成功！")
+      zegoStore.engine.createStream().then((res) => {
+        roomInfo.stream = res
+        if (isJudge) {
+          proxy.$refs.judge.srcObject = res
+          zegoStore.engine.startPublishingStream(zegoStore.config.streamID, res, {extraInfo: "judge"})
+          userInfo.judge = zegoStore.config.nickName
+        } else {
+          //todo
+          let idx = wsStore.user.findIndex(item => item.userId === zegoStore.config.userId)
+          proxy.$refs["player" + (idx + 1)].srcObject = res
+          zegoStore.engine.startPublishingStream(zegoStore.config.streamID, res, {extraInfo: "player" + (idx + 1)})
+        }
+      }).catch(err => {
+        proxy.$message.error(err.msg)
+      })
     } else {
-      this.userInfo.player1 = this.config.nickName
+      proxy.$message.error(res.extendedData)
     }
-    this.$notify.warning({
-      title: "注意事项",
-      message: "1.当题目显示后按回车键抢答。\n2.抢答失败将被闭麦，题目不会自动关闭，请手动关闭\n3.回答时间为10s，时间到将闭麦\n4.等待裁判计分并点击下一题\n" +
-          "5.十题后比赛结束，裁判宣判结果后可点击结束比赛按钮",
-      duration: 10000,
-      showClose: true
-    })
-  },
-  beforeDestroy() {
-    this.engine && this.engine.leaveRoom()
+  })
+}
+
+function leaveRoom() {
+  roomInfo.playStreamList.forEach((item) => {
+    zegoStore.engine.stopPlayingStream(item)
+  })
+  zegoStore.engine.stopPublishingStream(zegoStore.config.streamID)
+  zegoStore.engine.destroyStream(roomInfo.stream)
+}
+
+function muteMicrophone(state) {
+  let res = zegoStore.engine.mutePublishStreamAudio(roomInfo.stream, state)
+  if (res) {
+    proxy.$message.success(state !== true ? "解禁麦克风" : "关闭麦克风")
   }
 }
+
+function audioChange(val) {
+  zegoStore.engine.useAudioDevice(roomInfo.stream, val).then((res) => {
+    let option = {title: "切换麦克风", showClose: false, message: res.extendedData}
+    res.errorCode === 0 ? proxy.$notify.success(option) : proxy.$notify.error(option)
+  })
+}
+
+function videoChange(val) {
+  zegoStore.engine.useVideoDevice(roomInfo.stream, val).then((res) => {
+    let option = {title: "切换摄像头", showClose: false, message: res.extendedData}
+    res.errorCode === 0 ? proxy.$notify.success(option) : proxy.$notify.error(option)
+  })
+}
+
+function startCompetition() {
+  wsStore.sendObject({
+    "index": roomInfo.questionIdx++,
+    "roomId": zegoStore.config.roomId,
+    "handler": "get_question"
+  })
+  roomInfo.startState = true
+}
+
+function endGame() {
+  wsStore.sendObject({
+    "handler": "end_game",
+    "roomId": zegoStore.config.roomId
+  })
+  getRoom(zegoStore.config.roomId).then(res => {
+    res.data.status = 0
+    updateRoom(res.data).then(res => {
+      console.log(res)
+      leaveRoom()
+    })
+  })
+}
+
 </script>
+
 
 <style scoped>
 #videoBox {
